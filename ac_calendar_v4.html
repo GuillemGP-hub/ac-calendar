@@ -1345,10 +1345,10 @@ function renderWorkerList(){
 
 async function removeWorker(name){
   if(!confirm(`Remove ${name} from the team?\nThis will also hide all their calendar entries.`))return;
-  const idx=WORKERS.findIndex(w=>w.name===name);
-  const wobj=WORKERS.find(x=>x.name===name);const wid=wobj?._id;
-  const idx=WORKERS.findIndex(w=>w.name===name);
-  if(idx>-1)WORKERS.splice(idx,1);
+  const wobj=WORKERS.find(x=>x.name===name);
+  const wid=wobj?._id;
+  const widx=WORKERS.findIndex(w=>w.name===name);
+  if(widx>-1)WORKERS.splice(widx,1);
   renderWorkerList();
   refreshAllDropdowns();
   render();
