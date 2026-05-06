@@ -854,8 +854,8 @@ const msalApp = new msal.PublicClientApplication({
   },
   cache:{cacheLocation:'sessionStorage',storeAuthStateInCookie:false}
 });
-const SP_SCOPES   = [`${SP_SITE}/AllSites.Manage`];
-const SP_SCOPES_R = [`${SP_SITE}/AllSites.Read`];
+const SP_SCOPES   = ['https://allesanders.sharepoint.com/AllSites.Manage'];
+const SP_SCOPES_R = ['https://allesanders.sharepoint.com/AllSites.Read'];
 let currentUser=null, isEditor=false, spToken=null, AC_OOO_IDs={};
 
 // ── UI helpers ──
