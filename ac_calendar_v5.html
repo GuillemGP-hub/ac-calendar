@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AC Team — Urlaubsübersicht</title>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Libre+Franklin:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold:       #C9952A;
+    --gold-light: #E8B84B;
+    --gold-pale:  #FBF3E0;
+    --navy:       #111827;
+    --navy-mid:   #1E2D45;
+    --navy-light: #2E4060;
+    --white:      #FFFFFF;
+    --off-white:  #F7F5F0;
+    --gray-100:   #F0EDE8;
+    --gray-200:   #DDD9D0;
+    --gray-400:   #9A9288;
+    --gray-600:   #5A554E;
+
+    --col-vac-acc:  #00873A;
+    --col-vac-pend: #7DC89A;
+    --col-ho:       #D4701E;
+    --col-krank:    #C0392B;
+    --col-acgft:    #1A5FA8;
+    --col-remote:   #B8860B;
+    --col-acooo:    #0E8FB5;
+    --col-weekend:  #EAE7E1;
+    --col-holiday:  #B8D4EE;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--off-white);
+    color: var(--navy);
+    font-family: 'Instrument Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--navy);
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    gap: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    font-family: 'Libre Franklin', sans-serif;
+    font-weight: 800;
+    font-size: 19px;
+    letter-spacing: 1.5px;
+    color: var(--gold);
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .brand-sub {
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .hcontrols { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+  .clabel {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gray-400);
+  }
+
+  select, input[type="number"] {
+    background: var(--navy-mid);
+    border: 1px solid var(--navy-light);
+    color: var(--white);
+    padding: 6px 10px;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 13px;
+    border-radius: 3px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color .15s;
+  }
+  select:focus, input[type="number"]:focus { border-color: var(--gold); }
+  input[type="number"] { width: 74px; }
+
+  .btn {
+    padding: 7px 16px;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-gold    { background:var(--gold); color:var(--navy); }
+  .btn-gold:hover { background:var(--gold-light); }
+  .btn-outline { background:transparent; color:var(--gray-400); border:1px solid var(--navy-light); }
+  .btn-outline:hover { border-color:var(--gold); color:var(--gold); }
+
+  /* LEGEND */
+  .legend-bar {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 9px 40px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .leg-label { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--gray-400); margin-right:6px; }
+
+  .leg-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 11px;
+    border-radius: 20px;
+    border: 1.5px solid var(--gray-200);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    color: var(--navy);
+    background: var(--white);
+    user-select: none;
+  }
+  .leg-pill.dimmed { opacity:.35; }
+  .leg-pill:hover  { border-color: var(--gold); }
+
+  .leg-dot { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+
+  /* STATS */
+  .stats-bar {
+    display: flex;
+    background: var(--white);
+    border-bottom: 2px solid var(--gray-200);
+  }
+  .stat-block {
+    flex: 1;
+    padding: 14px 24px;
+    border-right: 1px solid var(--gray-200);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .stat-block:last-child { border-right:none; }
+  .stat-lbl { font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--gray-400); }
+  .stat-val { font-family:'Libre Franklin',sans-serif; font-size:24px; font-weight:700; color:var(--navy); line-height:1; }
+  .stat-val.gold { color:var(--gold); }
+
+  /* TOOLBAR */
+  .toolbar {
+    padding: 14px 40px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--off-white);
+    flex-wrap: wrap;
+  }
+  .nav-group { display:flex; }
+  .nav-btn {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    color: var(--navy);
+    width: 32px; height: 32px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items:center; justify-content:center;
+    transition: all .15s;
+  }
+  .nav-btn:first-child { border-radius:3px 0 0 3px; border-right:none; }
+  .nav-btn:last-child  { border-radius:0 3px 3px 0; }
+  .nav-btn:hover { background:var(--gold); color:var(--navy); border-color:var(--gold); }
+
+  .period-title {
+    font-family: 'Libre Franklin', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+  .period-sub { font-size:11px; color:var(--gray-400); font-weight:500; }
+
+  .today-btn {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    color: var(--gray-600);
+    padding: 5px 14px;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .today-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+  .toolbar-right { margin-left:auto; display:flex; align-items:center; gap:12px; }
+  .status-msg { font-size:11px; font-weight:600; color:var(--col-vac-acc); }
+
+  input[type="file"] {
+    font-family: 'Instrument Sans', sans-serif;
+    font-size:11px;
+    color:var(--gray-600);
+    cursor:pointer;
+  }
+
+  /* CALENDAR */
+  main { padding: 24px 40px 48px; overflow-x:auto; }
+
+  .cal-wrap {
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 16px rgba(17,24,39,.07);
+  }
+
+  table { border-collapse:collapse; background:var(--white); }
+
+  th, td {
+    border-right: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  /* Name col */
+  .cn {
+    position: sticky; left:0; z-index:10;
+    background: var(--white);
+    min-width: 100px;
+    padding: 0 14px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    border-right: 2px solid var(--gray-200) !important;
+    white-space: nowrap;
+  }
+  /* Team col */
+  .ct {
+    position: sticky; left:100px; z-index:10;
+    background: var(--white);
+    min-width: 50px;
+    padding: 0 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-align: center;
+    border-right: 2px solid var(--gray-200) !important;
+    color: var(--gray-400);
+  }
+
+  /* Header */
+  thead tr { background: var(--navy); }
+  thead .cn {
+    background: var(--navy);
+    color: var(--gold);
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 10px; font-weight:600;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    height: 54px;
+    border-right-color: var(--navy-light) !important;
+    border-bottom: none;
+  }
+  thead .ct {
+    background: var(--navy);
+    color: var(--gray-400);
+    font-size: 10px; letter-spacing:1px; text-transform:uppercase;
+    border-right-color: var(--navy-light) !important;
+    border-bottom: none;
+  }
+
+  .dh {
+    min-width: 30px; width: 30px; height: 54px;
+    padding: 4px 2px; text-align: center; vertical-align: middle;
+    background: var(--navy);
+    border-right: 1px solid var(--navy-light);
+    border-bottom: none;
+  }
+  .dh.wk { background: #19253a; }
+  .dh.hol { background: #1a2e46; }
+
+  .dnum { font-size:13px; font-weight:700; color:var(--white); line-height:1; }
+  .dname { font-size:9px; font-weight:600; letter-spacing:.5px; color:var(--gray-400); margin-top:3px; text-transform:uppercase; }
+  .dh.wk .dnum { color:#374868; }
+  .dh.hol .dnum { color:var(--gold-light); }
+  .msep { font-size:8px; font-weight:700; letter-spacing:1px; color:var(--gold); text-transform:uppercase; line-height:1; margin-bottom:2px; }
+
+  /* Body rows */
+  tbody tr { height:34px; }
+  tbody tr:nth-child(even) { background:#FAFAF8; }
+  tbody tr:nth-child(even) .cn,
+  tbody tr:nth-child(even) .ct { background:#FAFAF8; }
+  tbody tr:hover .cn,
+  tbody tr:hover .ct { background:var(--gold-pale) !important; }
+
+  .wname { display:flex; flex-direction:column; gap:1px; }
+  .wrole { font-size:9px; font-weight:400; color:var(--gray-400); text-transform:uppercase; letter-spacing:.3px; }
+
+  /* Day cells */
+  .dc {
+    width:30px; min-width:30px; height:34px;
+    cursor:default; position:relative;
+    transition: filter .1s;
+    vertical-align: middle; text-align:center;
+  }
+  .dc:hover { filter:brightness(.85); }
+  .dc.today { outline:2px solid var(--gold); outline-offset:-2px; z-index:1; }
+
+  .t-vacation-accepted { background:var(--col-vac-acc); }
+  .t-vacation-pending  { background:var(--col-vac-pend); }
+  .t-ho     { background:var(--col-ho); }
+  .t-krank  { background:var(--col-krank); }
+  .t-acgft  { background:var(--col-acgft); }
+  .t-remote { background:var(--col-remote); }
+  .t-acooo  { background:var(--col-acooo); }
+  .t-holiday { background:var(--col-holiday); }
+  .t-weekend { background:var(--col-weekend); }
+
+  .dc[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 5px);
+    left: 50%; transform: translateX(-50%);
+    background: var(--navy);
+    color: var(--white);
+    font-size: 11px; font-weight:500;
+    white-space: nowrap;
+    padding: 5px 10px; border-radius:3px;
+    z-index:999; pointer-events:none;
+    border-left: 3px solid var(--gold);
+    box-shadow: 0 4px 12px rgba(0,0,0,.2);
+  }
+
+  /* MODAL */
+  .moverlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(17,24,39,.5); z-index:1000;
+    align-items:center; justify-content:center;
+  }
+  .moverlay.open { display:flex; }
+  .modal {
+    background:var(--white);
+    border-top: 4px solid var(--gold);
+    border-radius: 4px;
+    padding: 32px; width: 420px;
+    max-width: 95vw; max-height:90vh; overflow-y:auto;
+    box-shadow: 0 20px 60px rgba(17,24,39,.25);
+  }
+  .modal h2 {
+    font-family:'Libre Franklin',sans-serif;
+    font-weight:700; font-size:20px;
+    letter-spacing:0.3px; text-transform:uppercase;
+    color:var(--navy); margin-bottom:22px;
+  }
+  .frow { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
+  .frow label { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--gray-400); }
+  .frow select, .frow input[type="date"] {
+    background:var(--white); border:1px solid var(--gray-200);
+    color:var(--navy); padding:9px 12px;
+    font-family:'Instrument Sans',sans-serif; font-size:13px;
+    border-radius:3px; width:100%; outline:none;
+    transition:border-color .15s;
+  }
+  .frow select:focus, .frow input[type="date"]:focus { border-color:var(--gold); }
+  .mfooter {
+    display:flex; gap:10px; justify-content:flex-end;
+    margin-top:22px; padding-top:18px;
+    border-top:1px solid var(--gray-200);
+  }
+
+  ::-webkit-scrollbar { width:5px; height:5px; }
+  ::-webkit-scrollbar-track { background:var(--gray-100); }
+  ::-webkit-scrollbar-thumb { background:var(--gray-200); border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--gold); }
+
+  /* TEAM MODAL */
+  .worker-list { display:flex; flex-direction:column; gap:6px; margin-bottom:20px; max-height:280px; overflow-y:auto; }
+  .worker-row {
+    display: flex; align-items: center; gap:10px;
+    padding: 9px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 4px;
+    background: var(--off-white);
+    font-size: 13px;
+  }
+  .worker-row:hover { border-color: var(--gray-400); }
+  .wrow-name { font-weight:600; color:var(--navy); min-width:42px; }
+  .wrow-team {
+    font-size:10px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase;
+    background: var(--navy); color: var(--gold);
+    padding: 2px 7px; border-radius: 3px;
+  }
+  .wrow-role { font-size:11px; color:var(--gray-400); flex:1; }
+  .wrow-del {
+    margin-left:auto; background:none; border:none;
+    color: var(--gray-400); font-size:16px; cursor:pointer;
+    width:26px; height:26px; border-radius:3px;
+    display:flex; align-items:center; justify-content:center;
+    transition: all .15s; flex-shrink:0;
+  }
+  .wrow-del:hover { background:var(--col-krank); color:#fff; }
+  .team-divider {
+    font-size:10px; font-weight:700; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--gray-400);
+    padding: 10px 0 6px; border-bottom: 1px solid var(--gray-200);
+    margin-bottom:8px;
+  }
+  .add-worker-form {
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius:4px;
+    padding: 14px;
+  }
+  .add-worker-form .form-title {
+    font-size:10px; font-weight:700; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--gray-600);
+    margin-bottom:12px;
+  }
+  .add-worker-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px; }
+  .add-worker-grid input, .add-worker-grid select {
+    background:var(--white); border:1px solid var(--gray-200);
+    color:var(--navy); padding:8px 10px;
+    font-family:'Instrument Sans',sans-serif; font-size:12px;
+    border-radius:3px; width:100%; outline:none;
+    transition:border-color .15s;
+  }
+  .add-worker-grid input:focus,
+  .add-worker-grid select:focus { border-color:var(--gold); }
+  .add-worker-grid input::placeholder { color:var(--gray-400); }
+
+  /* ── WORKER STATS PANEL ── */
+  .wpanel-overlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(17,24,39,.45); z-index:1000;
+    align-items:flex-start; justify-content:flex-end;
+    padding:20px;
+  }
+  .wpanel-overlay.open { display:flex; }
+
+  .wpanel {
+    background:var(--white);
+    border-top:4px solid var(--gold);
+    border-radius:6px;
+    width:360px; max-width:95vw;
+    max-height:calc(100vh - 40px);
+    overflow-y:auto;
+    box-shadow:0 20px 60px rgba(17,24,39,.25);
+    animation: slideIn .2s ease;
+  }
+  @keyframes slideIn { from{transform:translateX(30px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+  .wpanel-header {
+    padding:20px 24px 16px;
+    border-bottom:1px solid var(--gray-200);
+    display:flex; align-items:flex-start; justify-content:space-between;
+  }
+  .wpanel-name {
+    font-family:'Libre Franklin',sans-serif;
+    font-weight:700; font-size:22px; letter-spacing:.5px;
+    color:var(--navy); line-height:1;
+  }
+  .wpanel-meta { font-size:11px; color:var(--gray-400); margin-top:4px; }
+  .wpanel-close {
+    background:none; border:none; font-size:20px;
+    color:var(--gray-400); cursor:pointer; padding:0 4px;
+    line-height:1; transition:color .15s;
+  }
+  .wpanel-close:hover { color:var(--navy); }
+
+  .wpanel-body { padding:20px 24px; }
+
+  .wpanel-section-title {
+    font-size:9px; font-weight:700; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--gray-400);
+    margin-bottom:12px; padding-bottom:6px;
+    border-bottom:1px solid var(--gray-100);
+  }
+
+  /* Vacation budget bar */
+  .vac-budget {
+    margin-bottom:20px;
+  }
+  .vac-bar-row {
+    display:flex; align-items:center; gap:10px; margin-bottom:6px;
+  }
+  .vac-bar-track {
+    flex:1; height:8px; background:var(--gray-100);
+    border-radius:4px; overflow:hidden;
+  }
+  .vac-bar-fill {
+    height:100%; border-radius:4px;
+    transition:width .4s ease;
+  }
+  .vac-bar-pct {
+    font-size:11px; font-weight:700; min-width:36px; text-align:right;
+  }
+  .vac-numbers {
+    display:flex; gap:16px; flex-wrap:wrap;
+  }
+  .vac-num-block { display:flex; flex-direction:column; gap:2px; }
+  .vac-num-label { font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--gray-400); }
+  .vac-num-val { font-family:'Libre Franklin',sans-serif; font-size:22px; font-weight:700; line-height:1; }
+
+  /* Reset notice */
+  .reset-notice {
+    background:var(--gold-pale); border:1px solid #e8d5a0;
+    border-radius:4px; padding:8px 12px; margin-bottom:16px;
+    font-size:11px; color:#7a5c0a; line-height:1.5;
+  }
+
+  /* Stat rows */
+  .stat-rows { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+  .stat-row {
+    display:flex; align-items:center; gap:10px;
+    padding:8px 10px; border-radius:4px;
+    background:var(--gray-100);
+  }
+  .stat-row-dot { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+  .stat-row-label { font-size:12px; font-weight:500; flex:1; color:var(--navy); }
+  .stat-row-val { font-family:'Libre Franklin',sans-serif; font-weight:700; font-size:16px; }
+
+  /* Entry list */
+  .entry-list { display:flex; flex-direction:column; gap:4px; }
+  .entry-item {
+    display:flex; align-items:center; gap:8px;
+    padding:7px 10px; border-radius:4px;
+    border:1px solid var(--gray-200);
+    font-size:11px;
+  }
+  .entry-item-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+  .entry-item-dates { flex:1; color:var(--gray-600); }
+  .entry-item-type { font-weight:600; color:var(--navy); }
+  .entry-item-status {
+    font-size:9px; font-weight:700; letter-spacing:.5px;
+    text-transform:uppercase; padding:2px 6px; border-radius:2px;
+  }
+  .status-accepted { background:#d4edda; color:#155724; }
+  .status-pending  { background:#fff3cd; color:#856404; }
+  .entry-item-del {
+    background:none; border:none; color:var(--gray-400);
+    cursor:pointer; font-size:14px; padding:0 2px;
+    transition:color .15s; line-height:1;
+  }
+  .entry-item-del:hover { color:var(--col-krank); }
+
+  .wpanel-year-nav {
+    display:flex; align-items:center; gap:8px; margin-bottom:16px;
+  }
+  .wpanel-year-btn {
+    background:var(--gray-100); border:1px solid var(--gray-200);
+    color:var(--navy); width:26px; height:26px; border-radius:3px;
+    cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;
+    transition:all .15s;
+  }
+  .wpanel-year-btn:hover { background:var(--gold); border-color:var(--gold); }
+  .wpanel-year-label { font-family:'Libre Franklin',sans-serif; font-weight:700; font-size:15px; }
+
+  .cn-clickable { cursor:pointer; }
+  .cn-clickable:hover { color:var(--gold) !important; text-decoration:underline; text-underline-offset:3px; }
+
+  /* ── AUTH / LOADING ── */
+  #loadingOverlay{display:flex;position:fixed;inset:0;background:#111827;z-index:5000;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s;}
+  #loadingOverlay.fade{opacity:0;pointer-events:none;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .sync-dot{width:8px;height:8px;border-radius:50%;background:#00873A;display:inline-block;transition:background .3s;}
+  .sync-dot.syncing{background:#C9952A;animation:pulse .6s infinite alternate;}
+  @keyframes pulse{from{opacity:.4}to{opacity:1}}
+  .user-pill{display:flex;align-items:center;gap:7px;background:#2E4060;border-radius:20px;padding:4px 12px 4px 8px;color:#fff;font-size:11px;font-weight:600;}
+  .user-avatar{width:20px;height:20px;border-radius:50%;background:#C9952A;color:#111827;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;}
+  .editor-badge{background:#C9952A;color:#111827;font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:3px;}
+  .readonly-badge{background:#2E4060;color:#9A9288;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:3px;}
+  .status-msg.err{color:#C0392B;}
+  /* Editor-only buttons hidden for read-only users */
+  .editor-only{display:none !important;}
+  body.is-editor .editor-only{display:inline-block !important;}
+
+</style>
+</head>
+<body>
+
+
+<!-- Loading overlay -->
+<div id="loadingOverlay">
+  <div style="font-family:'Libre Franklin',sans-serif;font-weight:800;font-size:28px;letter-spacing:3px;color:#C9952A;text-transform:uppercase;">ANDERS</div>
+  <div style="font-size:11px;color:#9A9288;letter-spacing:2px;text-transform:uppercase;">Consulting · Team Calendar</div>
+  <div style="width:32px;height:32px;border:3px solid #2E4060;border-top-color:#C9952A;border-radius:50%;animation:spin .8s linear infinite;margin-top:8px;"></div>
+  <div id="loadingMsg" style="font-size:12px;color:#9A9288;">Connecting to Microsoft…</div>
+</div>
+<!-- Error banner -->
+<div id="errorBanner" onclick="this.style.display='none'" style="display:none;background:#C0392B;color:#fff;padding:10px 40px;font-size:12px;font-weight:600;cursor:pointer;">⚠ <span id="errorMsg"></span> — click to dismiss</div>
+<!-- Auth bar -->
+<div id="authBar" style="background:#1E2D45;padding:6px 40px;display:flex;align-items:center;justify-content:flex-end;gap:12px;font-size:11px;color:#9A9288;border-bottom:1px solid #2E4060;">
+  <span><span class="sync-dot" id="syncDot"></span></span>
+  <span id="userInfo"></span>
+  <button id="loginBtn" class="btn btn-gold" style="font-size:10px;padding:5px 12px;" onclick="doLogin()">Sign in with Microsoft</button>
+  <button id="logoutBtn" class="btn btn-outline" style="font-size:10px;padding:5px 12px;display:none;" onclick="doLogout()">Sign out</button>
+</div>
+
+<header>
+  <div>
+    <div class="brand">ANDERS</div>
+    <div class="brand-sub">Consulting · Team Calendar</div>
+  </div>
+  <div class="hcontrols">
+    <span class="clabel">Year</span>
+    <input type="number" id="yearInput" value="2026" min="2024" max="2035">
+    <span class="clabel">View</span>
+    <select id="viewMode">
+      <option value="month">Month</option>
+      <option value="quarter">Quarter</option>
+      <option value="year">Full Year</option>
+    </select>
+    <span class="clabel">Team</span>
+    <select id="teamFilter"><option value="all">All Teams</option></select>
+    <button class="btn btn-gold" onclick="openModal()" class="btn btn-gold editor-only">+ Add Entry</button>
+    <button class="btn btn-outline" onclick="openTeamModal()" class="btn btn-outline editor-only">⚙ Team</button>
+    <button class="btn btn-outline" onclick="exportCSV()">↓ Export</button>
+  </div>
+</header>
+
+<div class="legend-bar">
+  <span class="leg-label">Legend</span>
+  <div class="leg-pill" data-type="vacation-accepted" onclick="toggleLeg(this)"><div class="leg-dot" style="background:var(--col-vac-acc)"></div>Vacation ✓</div>
+  <div class="leg-pill" data-type="vacation-pending"  onclick="toggleLeg(this)"><div class="leg-dot" style="background:var(--col-vac-pend)"></div>Vacation (pending)</div>
+  <div class="leg-pill" data-type="ho"     onclick="toggleLeg(this)"><div class="leg-dot" style="background:var(--col-ho)"></div>Home Office</div>
+  <div class="leg-pill" data-type="krank"  onclick="toggleLeg(this)"><div class="leg-dot" style="background:var(--col-krank)"></div>Krank</div>
+  <div class="leg-pill" data-type="acgft"  onclick="toggleLeg(this)"><div class="leg-dot" style="background:var(--col-acgft)"></div>AC Gift</div>
+  <div class="leg-pill" data-type="remote" onclick="toggleLeg(this)"><div class="leg-dot" style="background:var(--col-remote)"></div>Remote</div>
+  <div class="leg-pill" data-type="acooo"  onclick="toggleLeg(this)"><div class="leg-dot" style="background:var(--col-acooo)"></div>AC ooo</div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-block"><div class="stat-lbl">Vacation days</div><div class="stat-val gold" id="sv">—</div></div>
+  <div class="stat-block"><div class="stat-lbl">Home Office</div><div class="stat-val" id="sho">—</div></div>
+  <div class="stat-block"><div class="stat-lbl">Sick days</div><div class="stat-val" id="sk">—</div></div>
+  <div class="stat-block"><div class="stat-lbl">Total absences</div><div class="stat-val" id="sa">—</div></div>
+  <div class="stat-block"><div class="stat-lbl">Workers</div><div class="stat-val" id="sw">—</div></div>
+  <div class="stat-block"><div class="stat-lbl">Period days</div><div class="stat-val" id="sd">—</div></div>
+</div>
+
+<div class="toolbar">
+  <div class="nav-group">
+    <button class="nav-btn" onclick="prevPeriod()">‹</button>
+    <button class="nav-btn" onclick="nextPeriod()">›</button>
+  </div>
+  <div>
+    <div class="period-title" id="pTitle">—</div>
+    <div class="period-sub"   id="pSub"></div>
+  </div>
+  <button class="today-btn" onclick="goToday()">Today</button>
+  <div class="toolbar-right">
+    
+    <span class="status-msg" id="statusMsg"></span>
+  </div>
+</div>
+
+<main>
+  <div class="cal-wrap">
+    <table id="calTable">
+      <thead id="calHead"></thead>
+      <tbody id="calBody"></tbody>
+    </table>
+  </div>
+</main>
+
+<div class="moverlay" id="moverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h2>Add Entry</h2>
+    <div class="frow"><label>Worker</label>
+      <select id="nWorker" onchange="onWorkerChange()">
+        <option value="__ALL__">⭐ All Workers</option>
+      </select>
+    </div>
+    <div class="frow"><label>Type</label>
+      <select id="nType" onchange="onTypeChange()">
+        <option value="Vacations">Vacations</option>
+        <option value="HO">Home Office</option>
+        <option value="Krank">Krank (Sick)</option>
+        <option value="ACGft">AC Gift</option>
+        <option value="Remote">Remote</option>
+        <option value="AC_OOO">🏢 AC ooo (company off)</option>
+      </select>
+    </div>
+    <div class="frow" id="statusRow"><label>Status</label>
+      <select id="nStatus">
+        <option value="Accepted">Accepted</option>
+        <option value="Pending">Pending</option>
+        <option value="">—</option>
+      </select>
+    </div>
+    <div class="frow"><label>Start</label><input type="date" id="nStart"></div>
+    <div class="frow"><label>End</label><input type="date" id="nEnd"></div>
+    <div id="entryPreview" style="font-size:11px;color:var(--gray-400);padding:6px 0;display:none;"></div>
+    <div class="frow" id="halfDayRow" style="display:none">
+      <label style="flex-direction:row;align-items:center;gap:10px;cursor:pointer;">
+        <input type="checkbox" id="nHalfDay" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer;">
+        <span style="font-size:12px;font-weight:500;color:var(--navy)">Half day <span style="color:var(--gray-400);font-weight:400">(counts as 0.5 days)</span></span>
+      </label>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="addEntry()">Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="moverlay" id="teamOverlay" onclick="if(event.target===this)closeTeamModal()">
+  <div class="modal" style="width:520px;max-width:96vw;">
+    <h2>Manage Team</h2>
+    <div class="team-divider">Current workers (<span id="workerCount">0</span>)</div>
+    <div class="worker-list" id="workerList"></div>
+    <div class="add-worker-form">
+      <div class="form-title">Add new worker</div>
+      <div class="add-worker-grid">
+        <input type="text" id="wName" placeholder="Name / initials" maxlength="8">
+        <input type="text" id="wTeam" placeholder="Team" list="teamSuggestions" maxlength="20">
+        <input type="text" id="wRole" placeholder="Role (optional)" maxlength="30">
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <label style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-600);">Day off</label>
+        <select id="wDayOff" style="font-family:'Instrument Sans',sans-serif;font-size:11px;font-weight:600;background:var(--white);border:1px solid var(--gray-200);color:var(--navy);border-radius:3px;padding:5px 8px;cursor:pointer;">
+          <option value="none">5 days/week (normal)</option>
+          <option value="friday">4 days — no Friday</option>
+          <option value="monday">4 days — no Monday</option>
+        </select>
+      </div>
+      <datalist id="teamSuggestions"></datalist>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn btn-gold" onclick="addWorker()" style="font-size:11px;padding:7px 18px;">+ Add Worker</button>
+      </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-outline" onclick="closeTeamModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+// ═══════════════════════════════════════════════════════════════
+// CONFIG — edit these if URLs or editors change
+// ═══════════════════════════════════════════════════════════════
+const CLIENT_ID = 'daa7c88b-d933-4351-b3f8-d094516d4890';
+const TENANT_ID = '0aad58d7-900a-447a-bcbe-4dcde3c0330b';
+const SP_SITE   = 'https://allesanders.sharepoint.com/sites/wiki';
+const EDITORS   = ['gp@andersconsulting.com','cb@andersconsulting.com','sh@andersconsulting.com'];
+const L_WORKERS = 'AC_Workers';
+const L_ENTRIES = 'AC_Entries';
+const L_OOO     = 'AC_OOO';
+
+// ═══════════════════════════════════════════════════════════════
+// MSAL
+// ═══════════════════════════════════════════════════════════════
+const msalApp = new msal.PublicClientApplication({
+  auth:{
+    clientId:CLIENT_ID,
+    authority:`https://login.microsoftonline.com/${TENANT_ID}`,
+    redirectUri: window.location.href.split('?')[0].split('#')[0],
+  },
+  cache:{cacheLocation:'sessionStorage',storeAuthStateInCookie:false}
+});
+const SP_SCOPES   = [`${SP_SITE}/AllSites.Manage`];
+const SP_SCOPES_R = [`${SP_SITE}/AllSites.Read`];
+let currentUser=null, isEditor=false, spToken=null, AC_OOO_IDs={};
+
+// ── UI helpers ──
+function setLoading(msg){document.getElementById('loadingMsg').textContent=msg||'';}
+function hideLoading(){const o=document.getElementById('loadingOverlay');o.classList.add('fade');setTimeout(()=>o.style.display='none',400);}
+function showError(msg){document.getElementById('errorMsg').textContent=msg;document.getElementById('errorBanner').style.display='block';console.error(msg);}
+function setStatus(msg,err=false){const el=document.getElementById('statusMsg');el.textContent=msg;el.className='status-msg'+(err?' err':'');}
+function setSyncing(on){document.getElementById('syncDot').className='sync-dot'+(on?' syncing':'');}
+
+async function initAuth(){
+  setLoading('Connecting to Microsoft…');
+  try{
+    await msalApp.initialize();
+    const resp=await msalApp.handleRedirectPromise();
+    if(resp?.account) msalApp.setActiveAccount(resp.account);
+    const accounts=msalApp.getAllAccounts();
+    if(accounts.length>0){msalApp.setActiveAccount(accounts[0]);await afterLogin(accounts[0]);}
+    else doLogin();
+  }catch(e){showError('Auth error: '+e.message);hideLoading();}
+}
+function doLogin(){msalApp.loginRedirect({scopes:[...SP_SCOPES,...SP_SCOPES_R],prompt:'select_account'});}
+function doLogout(){msalApp.logoutRedirect({postLogoutRedirectUri:window.location.href});}
+
+async function getToken(){
+  const account=msalApp.getActiveAccount();if(!account)return null;
+  const scopes=isEditor?SP_SCOPES:SP_SCOPES_R;
+  try{const r=await msalApp.acquireTokenSilent({scopes,account});return r.accessToken;}
+  catch(e){try{const r=await msalApp.acquireTokenPopup({scopes,account});return r.accessToken;}catch(e2){return null;}}
+}
+
+async function afterLogin(account){
+  currentUser=account;
+  const email=(account.username||'').toLowerCase().trim();
+  isEditor=EDITORS.includes(email);
+  if(isEditor) document.body.classList.add('is-editor');
+  document.getElementById('loginBtn').style.display='none';
+  document.getElementById('logoutBtn').style.display='';
+  const initials=email.slice(0,2).toUpperCase();
+  const badge=isEditor?`<span class="editor-badge">Editor</span>`:`<span class="readonly-badge">Read only</span>`;
+  document.getElementById('userInfo').innerHTML=`<div class="user-pill"><div class="user-avatar">${initials}</div>${account.username}</div>${badge}`;
+  spToken=await getToken();
+  setLoading('Loading calendar data…');
+  await loadAllData();
+  hideLoading();
+  initUI();render();
+}
+
+// ── SharePoint REST ──
+const SP_API=`${SP_SITE}/_api`;
+async function spFetch(url,opts={}){
+  if(!spToken)spToken=await getToken();
+  const r=await fetch(url,{...opts,headers:{'Authorization':`Bearer ${spToken}`,'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose',...(opts.headers||{})}});
+  if(r.status===204)return null;
+  const j=await r.json();
+  if(!r.ok)throw new Error(j.error?.message?.value||r.statusText);
+  return j;
+}
+async function spGet(p){return spFetch(`${SP_API}${p}`);}
+async function spPost(p,b){return spFetch(`${SP_API}${p}`,{method:'POST',body:JSON.stringify(b)});}
+async function spMerge(p,b){return spFetch(`${SP_API}${p}`,{method:'POST',body:JSON.stringify(b),headers:{'X-HTTP-Method':'MERGE','IF-MATCH':'*'}});}
+async function spDel(p){return spFetch(`${SP_API}${p}`,{method:'POST',body:'{}',headers:{'X-HTTP-Method':'DELETE','IF-MATCH':'*'}});}
+async function getItems(list,sel=''){let u=`/web/lists/getbytitle('${list}')/items?$top=5000`;if(sel)u+=`&$select=${sel}`;const r=await spGet(u);return r.d.results;}
+async function addItem(list,fields){const type=`SP.Data.${list.replace(/_/g,'')}ListItem`;const r=await spPost(`/web/lists/getbytitle('${list}')/items`,{__metadata:{type},...fields});return r.d.ID;}
+async function delItem(list,id){return spDel(`/web/lists/getbytitle('${list}')/items(${id})`);}
+async function listExists(name){try{await spGet(`/web/lists/getbytitle('${name}')/id`);return true;}catch(e){return false;}}
+async function createList(name,fields){
+  await spPost('/web/lists',{__metadata:{type:'SP.List'},BaseTemplate:100,Title:name,Description:'AC Calendar'});
+  for(const f of fields){try{await spPost(`/web/lists/getbytitle('${name}')/fields`,{__metadata:{type:'SP.Field'},FieldTypeKind:f.t,Title:f.n,MaxLength:f.ml||255});}catch(e){}}
+}
+async function ensureLists(){
+  if(!await listExists(L_WORKERS))await createList(L_WORKERS,[{n:'WorkerName',t:2},{n:'Team',t:2},{n:'Role',t:2},{n:'VacDays',t:9},{n:'NoFriday',t:2},{n:'NoMonday',t:2}]);
+  if(!await listExists(L_ENTRIES))await createList(L_ENTRIES,[{n:'Username',t:2},{n:'StartDate',t:2},{n:'EndDate',t:2},{n:'Status',t:2},{n:'EntryType',t:2},{n:'DayValue',t:9}]);
+  if(!await listExists(L_OOO))await createList(L_OOO,[{n:'OooDate',t:2},{n:'DayVal',t:9}]);
+}
+
+// ── Load / Seed ──
+async function loadAllData(){
+  try{
+    const exists=await listExists(L_WORKERS);
+    if(!exists){
+      loadSeedData();
+      if(isEditor){setLoading('First run — creating SharePoint lists…');await ensureLists();setLoading('Uploading data…');await uploadSeedData();setStatus(`✓ SharePoint ready · ${ENTRIES.length} entries`);}
+      else setStatus('ℹ Read-only offline mode');
+      return;
+    }
+    const[ws,es,os]=await Promise.all([
+      getItems(L_WORKERS,'Id,WorkerName,Team,Role,VacDays,NoFriday,NoMonday'),
+      getItems(L_ENTRIES,'Id,Username,StartDate,EndDate,Status,EntryType,DayValue'),
+      getItems(L_OOO,'Id,OooDate,DayVal'),
+    ]);
+    WORKERS=ws.map(i=>({_id:i.Id,name:i.WorkerName,team:i.Team||'',role:i.Role||'',vacDays:i.VacDays||0,noFriday:i.NoFriday==='true',noMonday:i.NoMonday==='true'}));
+    ENTRIES=es.map(i=>({_id:i.Id,username:i.Username,start:i.StartDate,end:i.EndDate,status:i.Status||'',type:i.EntryType,dayValue:i.DayValue||undefined}));
+    AC_OOO=new Map();AC_OOO_IDs={};
+    os.forEach(i=>{AC_OOO.set(i.OooDate,i.DayVal);AC_OOO_IDs[i.OooDate]=i.Id;});
+    setStatus(`✓ ${ENTRIES.length} entries loaded`);
+  }catch(e){showError('Load error: '+e.message);loadSeedData();setStatus('⚠ Offline mode',true);}
+}
+
+async function uploadSeedData(){
+  for(const w of WORKERS){try{const id=await addItem(L_WORKERS,{WorkerName:w.name,Team:w.team,Role:w.role,VacDays:w.vacDays,NoFriday:String(!!w.noFriday),NoMonday:String(!!w.noMonday)});w._id=id;}catch(e){}}
+  for(const e of ENTRIES){try{const id=await addItem(L_ENTRIES,{Username:e.username,StartDate:e.start,EndDate:e.end,Status:e.status||'',EntryType:e.type,DayValue:e.dayValue||null});e._id=id;}catch(e2){}}
+  for(const[date,val]of AC_OOO){try{const id=await addItem(L_OOO,{OooDate:date,DayVal:val});AC_OOO_IDs[date]=id;}catch(e){}}
+}
+
+// ── Sync writes ──
+async function syncAdd(e){if(!isEditor||!spToken)return;setSyncing(true);try{const id=await addItem(L_ENTRIES,{Username:e.username,StartDate:e.start,EndDate:e.end,Status:e.status||'',EntryType:e.type,DayValue:e.dayValue||null});e._id=id;setStatus(`✓ Saved · ${ENTRIES.length} entries`);}catch(ex){showError('Save failed: '+ex.message);}setSyncing(false);}
+async function syncDel(e){if(!isEditor||!spToken||!e._id)return;setSyncing(true);try{await delItem(L_ENTRIES,e._id);setStatus('✓ Deleted');}catch(ex){showError('Delete failed: '+ex.message);}setSyncing(false);}
+async function syncAddWorker(w){if(!isEditor||!spToken)return;setSyncing(true);try{const id=await addItem(L_WORKERS,{WorkerName:w.name,Team:w.team,Role:w.role,VacDays:w.vacDays,NoFriday:String(!!w.noFriday),NoMonday:String(!!w.noMonday)});w._id=id;}catch(ex){showError('Save failed: '+ex.message);}setSyncing(false);}
+async function syncDelWorker(id){if(!isEditor||!spToken||!id)return;setSyncing(true);try{await delItem(L_WORKERS,id);}catch(ex){showError('Delete failed: '+ex.message);}setSyncing(false);}
+async function syncUpdateWorker(w){if(!isEditor||!spToken||!w._id)return;setSyncing(true);try{await spMerge(`/web/lists/getbytitle('${L_WORKERS}')/items(${w._id})`,{__metadata:{type:`SP.Data.${L_WORKERS.replace(/_/g,'')}ListItem`},NoFriday:String(!!w.noFriday),NoMonday:String(!!w.noMonday)});}catch(ex){showError('Update failed: '+ex.message);}setSyncing(false);}
+async function syncAddOOO(date,val){if(!isEditor||!spToken)return;setSyncing(true);try{const id=await addItem(L_OOO,{OooDate:date,DayVal:val});AC_OOO_IDs[date]=id;}catch(ex){showError('Save OOO failed: '+ex.message);}setSyncing(false);}
+
+
+let WORKERS=[
+  {name:'FA', team:'GF',       role:'CEO',          vacDays:29},
+  {name:'LJA',team:'Tiger',    role:'Teamlead',     vacDays:30},
+  {name:'CB', team:'GF',       role:'Assist',       vacDays:29},
+  {name:'JHB',team:'Fox',      role:'',             vacDays:28},
+  {name:'BB', team:'Neun',     role:'PM',           vacDays:28},
+  {name:'SH', team:'GF',       role:'Head Finance', vacDays:30},
+  {name:'TL', team:'M&A',      role:'Associate',    vacDays:28},
+  {name:'NM', team:'Fox',      role:'CRM',          vacDays:33},
+  {name:'AP', team:'M&A',      role:'',             vacDays:29},
+  {name:'VP', team:'M&A',      role:'',             vacDays:28},
+  {name:'NR', team:'GF',       role:'',             vacDays:30},
+  {name:'DT', team:'Fox',      role:'PM',           vacDays:29},
+  {name:'MSW',team:'M&A',      role:'',             vacDays:29},
+  {name:'TW', team:'M&A',      role:'',             vacDays:28},
+  {name:'SBR',team:'DreamTeam',role:'',             vacDays:28},
+  {name:'AB', team:'Neun',     role:'',             vacDays:28},
+  {name:'TB', team:'Tiger',    role:'',             vacDays:24},
+  {name:'KK', team:'DreamTeam',role:'',             vacDays:30},
+  {name:'AMS',team:'GF',       role:'',             vacDays:20},
+  {name:'GP', team:'GF',       role:'',             vacDays:0},
+  {name:'MAL',team:'Fox',      role:'',             vacDays:0},
+  {name:'FS', team:'Tiger',    role:'',             vacDays:0},
+];
+
+// ── Bavaria public holidays — auto-calculated for any year ──
+function getBavariaHolidays(year) {
+  // Easter Sunday via Anonymous Gregorian algorithm
+  function easterSunday(y) {
+    const a = y % 19;
+    const b = Math.floor(y / 100);
+    const c = y % 100;
+    const d = Math.floor(b / 4);
+    const e = b % 4;
+    const f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4);
+    const k = c % 4;
+    const l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31); // 1-based
+    const day   = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(y, month - 1, day);
+  }
+
+  function addDays(date, n) {
+    const d = new Date(date); d.setDate(d.getDate() + n); return d;
+  }
+
+  function fmt(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth()+1).padStart(2,'0');
+    const d = String(date.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+  }
+
+  const easter = easterSunday(year);
+
+  return new Set([
+    `${year}-01-01`,                        // Neujahr
+    `${year}-01-06`,                        // Heilige Drei Könige (Bayern)
+    fmt(addDays(easter, -2)),               // Karfreitag
+    fmt(addDays(easter,  1)),               // Ostermontag
+    `${year}-05-01`,                        // Tag der Arbeit
+    fmt(addDays(easter, 39)),               // Christi Himmelfahrt
+    fmt(addDays(easter, 50)),               // Pfingstmontag
+    fmt(addDays(easter, 60)),               // Fronleichnam (Bayern)
+    `${year}-08-15`,                        // Mariä Himmelfahrt (Bayern)
+    `${year}-10-03`,                        // Tag der Deutschen Einheit
+    `${year}-11-01`,                        // Allerheiligen (Bayern)
+    `${year}-12-25`,                        // 1. Weihnachtstag
+    `${year}-12-26`,                        // 2. Weihnachtstag
+  ]);
+}
+
+// Build holidays for the currently viewed year (refreshed on year change)
+let HOLIDAYS = getBavariaHolidays(2026);
+// AC_OOO: Map of date -> day value (1 = full day, 0.5 = half day)
+let AC_OOO = new Map([
+  ['2026-01-02', 1],
+  ['2026-01-05', 1],
+  ['2026-05-15', 1],
+  ['2026-06-05', 1],
+  ['2026-12-24', 0.5],  // half day
+  ['2026-12-28', 1],
+  ['2026-12-29', 1],
+  ['2026-12-30', 1],
+  ['2026-12-31', 0.5],  // half day
+]);
+
+let ENTRIES=[
+  {username:'NM',start:'2026-01-02',end:'2026-04-02',status:'',type:'Krank'},
+  {username:'LJA',start:'2026-01-07',end:'2026-01-08',status:'Accepted',type:'Vacations'},
+  {username:'VP',start:'2026-01-07',end:'2026-01-16',status:'Accepted',type:'Vacations'},
+  {username:'VP',start:'2026-01-19',end:'2026-01-23',status:'Accepted',type:'Krank'},
+  {username:'DT',start:'2026-01-07',end:'2026-01-14',status:'Accepted',type:'Vacations'},
+  {username:'KK',start:'2026-01-07',end:'2026-01-21',status:'Accepted',type:'Vacations'},
+  {username:'BB',start:'2026-01-12',end:'2026-01-12',status:'',type:'HO'},
+  {username:'LJA',start:'2026-01-13',end:'2026-01-15',status:'',type:'HO'},
+  {username:'TB',start:'2026-01-16',end:'2026-01-30',status:'',type:'Krank'},
+  {username:'LJA',start:'2026-01-26',end:'2026-01-26',status:'',type:'HO'},
+  {username:'LJA',start:'2026-01-27',end:'2026-01-28',status:'',type:'Krank'},
+  {username:'CB',start:'2026-01-27',end:'2026-01-28',status:'Accepted',type:'Vacations'},
+  {username:'JHB',start:'2026-01-28',end:'2026-01-28',status:'Accepted',type:'Vacations'},
+  {username:'LJA',start:'2026-01-29',end:'2026-01-30',status:'',type:'HO'},
+  {username:'TW',start:'2026-01-30',end:'2026-02-04',status:'',type:'Krank'},
+  {username:'AB',start:'2026-01-19',end:'2026-01-19',status:'',type:'Krank'},
+  {username:'SBR',start:'2026-01-16',end:'2026-01-19',status:'Accepted',type:'Vacations'},
+  {username:'SBR',start:'2026-02-05',end:'2026-02-05',status:'',type:'Krank'},
+  {username:'AB',start:'2026-02-06',end:'2026-02-06',status:'Accepted',type:'Vacations'},
+  {username:'TL',start:'2026-02-09',end:'2026-02-09',status:'Accepted',type:'Vacations'},
+  {username:'AB',start:'2026-02-10',end:'2026-02-10',status:'',type:'Krank'},
+  {username:'KK',start:'2026-02-10',end:'2026-02-11',status:'Accepted',type:'Vacations'},
+  {username:'LJA',start:'2026-02-11',end:'2026-02-11',status:'',type:'HO'},
+  {username:'LJA',start:'2026-02-16',end:'2026-02-16',status:'Accepted',type:'Vacations'},
+  {username:'BB',start:'2026-02-16',end:'2026-02-16',status:'Accepted',type:'Vacations'},
+  {username:'CB',start:'2026-02-18',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'SH',start:'2026-02-17',end:'2026-02-17',status:'',type:'ACGft'},
+  {username:'TL',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'NR',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'TW',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'SBR',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'TB',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'KK',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'AMS',start:'2026-02-16',end:'2026-02-18',status:'Accepted',type:'Vacations'},
+  {username:'LJA',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'BB',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'LJA',start:'2026-02-19',end:'2026-02-20',status:'Accepted',type:'Vacations'},
+  {username:'BB',start:'2026-02-19',end:'2026-02-20',status:'Accepted',type:'Vacations'},
+  {username:'SBR',start:'2026-02-20',end:'2026-02-20',status:'Accepted',type:'Vacations'},
+  {username:'TB',start:'2026-02-23',end:'2026-02-23',status:'',type:'Krank'},
+  {username:'AMS',start:'2026-02-23',end:'2026-02-25',status:'Accepted',type:'Vacations'},
+  {username:'SH',start:'2026-02-26',end:'2026-02-27',status:'Accepted',type:'Vacations'},
+  {username:'TL',start:'2026-02-26',end:'2026-02-27',status:'Accepted',type:'Vacations',dayValue:1.5},
+  {username:'SBR',start:'2026-02-26',end:'2026-02-26',status:'Accepted',type:'Vacations'},
+  {username:'BB',start:'2026-02-27',end:'2026-02-27',status:'',type:'HO'},
+  {username:'VP',start:'2026-02-27',end:'2026-02-27',status:'Accepted',type:'Vacations'},
+  {username:'TW',start:'2026-02-27',end:'2026-02-27',status:'',type:'HO'},
+  {username:'SBR',start:'2026-03-03',end:'2026-03-03',status:'Accepted',type:'Vacations'},
+  {username:'AB',start:'2026-03-03',end:'2026-03-03',status:'',type:'Krank'},
+  {username:'LJA',start:'2026-03-04',end:'2026-03-04',status:'',type:'HO'},
+  {username:'BB',start:'2026-03-04',end:'2026-03-06',status:'',type:'HO'},
+  {username:'MSW',start:'2026-03-04',end:'2026-03-04',status:'',type:'HO'},
+  {username:'JHB',start:'2026-03-05',end:'2026-03-09',status:'Accepted',type:'Vacations'},
+  {username:'MSW',start:'2026-03-05',end:'2026-03-05',status:'Accepted',type:'Vacations',dayValue:0.5},
+  {username:'CB',start:'2026-03-09',end:'2026-03-13',status:'Accepted',type:'Vacations',dayValue:5.5},
+  {username:'SBR',start:'2026-03-09',end:'2026-03-10',status:'Accepted',type:'Vacations'},
+  {username:'TL',start:'2026-03-12',end:'2026-03-12',status:'',type:'Krank'},
+  {username:'TB',start:'2026-03-13',end:'2026-03-17',status:'Accepted',type:'Vacations'},
+  {username:'TW',start:'2026-03-16',end:'2026-03-26',status:'',type:'Krank'},
+  {username:'LJA',start:'2026-03-18',end:'2026-03-18',status:'',type:'HO'},
+  {username:'MSW',start:'2026-03-20',end:'2026-03-20',status:'Accepted',type:'Vacations',dayValue:0.5},
+  {username:'LJA',start:'2026-03-23',end:'2026-03-24',status:'',type:'HO'},
+  {username:'LJA',start:'2026-03-25',end:'2026-03-25',status:'',type:'Krank'},
+  {username:'LJA',start:'2026-03-26',end:'2026-03-26',status:'',type:'HO'},
+  {username:'TL',start:'2026-03-26',end:'2026-03-27',status:'Accepted',type:'Vacations'},
+  {username:'KK',start:'2026-03-26',end:'2026-03-26',status:'',type:'Krank'},
+  {username:'TB',start:'2026-03-27',end:'2026-03-27',status:'Accepted',type:'Vacations'},
+  {username:'SH',start:'2026-03-27',end:'2026-04-02',status:'Accepted',type:'Vacations'},
+  {username:'AP',start:'2026-03-30',end:'2026-03-31',status:'Accepted',type:'Vacations'},
+  {username:'TW',start:'2026-03-27',end:'2026-04-02',status:'Accepted',type:'Vacations'},
+  {username:'SBR',start:'2026-03-30',end:'2026-03-31',status:'',type:'Krank'},
+  {username:'AMS',start:'2026-03-30',end:'2026-04-02',status:'Accepted',type:'Vacations'},
+  {username:'FA',start:'2026-04-07',end:'2026-04-10',status:'Accepted',type:'Vacations'},
+  {username:'LJA',start:'2026-04-07',end:'2026-04-10',status:'Accepted',type:'Vacations'},
+  {username:'CB',start:'2026-04-07',end:'2026-04-07',status:'Accepted',type:'Vacations'},
+  {username:'CB',start:'2026-04-08',end:'2026-04-08',status:'Accepted',type:'Vacations',dayValue:0.5},
+  {username:'CB',start:'2026-04-09',end:'2026-04-10',status:'Accepted',type:'Vacations'},
+  {username:'BB',start:'2026-04-07',end:'2026-04-10',status:'Accepted',type:'Vacations'},
+  {username:'TL',start:'2026-04-07',end:'2026-04-10',status:'Accepted',type:'Vacations'},
+  {username:'NR',start:'2026-04-07',end:'2026-04-10',status:'Pending',type:'Vacations'},
+  {username:'SBR',start:'2026-04-07',end:'2026-04-10',status:'Pending',type:'Vacations'},
+  {username:'TB',start:'2026-04-13',end:'2026-04-24',status:'Accepted',type:'Vacations'},
+  {username:'AP',start:'2026-04-27',end:'2026-04-30',status:'Accepted',type:'Vacations'},
+  {username:'TL',start:'2026-04-30',end:'2026-04-30',status:'Accepted',type:'Vacations'},
+  {username:'NR',start:'2026-04-29',end:'2026-04-30',status:'Pending',type:'Vacations'},
+  {username:'TL',start:'2026-05-11',end:'2026-05-13',status:'Accepted',type:'Vacations'},
+  {username:'TW',start:'2026-05-18',end:'2026-05-18',status:'Pending',type:'Vacations'},
+  {username:'CB',start:'2026-05-26',end:'2026-06-12',status:'Accepted',type:'Vacations'},
+  {username:'LJA',start:'2026-05-27',end:'2026-06-03',status:'Pending',type:'Vacations'},
+  {username:'NM',start:'2026-05-26',end:'2026-05-29',status:'Pending',type:'Vacations'},
+  {username:'JHB',start:'2026-06-11',end:'2026-06-16',status:'Pending',type:'Vacations'},
+  {username:'TW',start:'2026-06-15',end:'2026-06-15',status:'Pending',type:'Vacations'},
+  {username:'SH',start:'2026-06-22',end:'2026-06-26',status:'Pending',type:'Vacations'},
+  {username:'NM',start:'2026-06-29',end:'2026-07-03',status:'Pending',type:'Vacations'},
+  {username:'SBR',start:'2026-07-01',end:'2026-07-10',status:'Pending',type:'Vacations'},
+  {username:'JHB',start:'2026-07-03',end:'2026-07-07',status:'Pending',type:'Vacations'},
+  {username:'KK',start:'2026-07-02',end:'2026-07-10',status:'Pending',type:'Vacations'},
+  {username:'BB',start:'2026-07-10',end:'2026-07-10',status:'Pending',type:'Vacations'},
+  {username:'TL',start:'2026-07-27',end:'2026-07-31',status:'Accepted',type:'Vacations'},
+  {username:'BB',start:'2026-07-31',end:'2026-07-31',status:'Pending',type:'Vacations'},
+  {username:'FA',start:'2026-08-03',end:'2026-08-28',status:'',type:'Remote'},
+  {username:'TL',start:'2026-08-07',end:'2026-08-07',status:'Pending',type:'Vacations'},
+  {username:'BB',start:'2026-08-10',end:'2026-08-21',status:'Pending',type:'Vacations'},
+  {username:'CB',start:'2026-08-17',end:'2026-08-18',status:'Pending',type:'Vacations'},
+  {username:'TW',start:'2026-08-17',end:'2026-08-28',status:'Pending',type:'Vacations'},
+  {username:'LJA',start:'2026-08-31',end:'2026-09-15',status:'Pending',type:'Vacations'},
+  {username:'KK',start:'2026-09-14',end:'2026-09-14',status:'Pending',type:'Vacations'},
+  {username:'TL',start:'2026-09-21',end:'2026-09-22',status:'Pending',type:'Vacations'},
+  {username:'SH',start:'2026-09-28',end:'2026-10-02',status:'Pending',type:'Vacations'},
+  {username:'TB',start:'2026-09-28',end:'2026-10-09',status:'Pending',type:'Vacations'},
+  {username:'TW',start:'2026-10-05',end:'2026-10-08',status:'Pending',type:'Vacations'},
+  {username:'SBR',start:'2026-10-05',end:'2026-10-06',status:'Pending',type:'Vacations'},
+  {username:'NM',start:'2026-10-15',end:'2026-10-16',status:'Pending',type:'Vacations'},
+  {username:'BB',start:'2026-11-02',end:'2026-11-06',status:'Pending',type:'Vacations'},
+  {username:'NR',start:'2026-11-02',end:'2026-11-20',status:'Pending',type:'Vacations'},
+  {username:'JHB',start:'2026-12-21',end:'2026-12-23',status:'Pending',type:'Vacations'},
+  {username:'TL',start:'2026-12-21',end:'2026-12-23',status:'Pending',type:'Vacations'},
+  {username:'CB',start:'2026-12-22',end:'2026-12-23',status:'Pending',type:'Vacations'},
+  {username:'VP',start:'2026-03-30',end:'2026-04-02',status:'Accepted',type:'Vacations'},
+  {username:'BB',start:'2027-02-03',end:'2027-02-03',status:'Pending',type:'Vacations'},
+];
+
+const n=new Date();
+let cYear=n.getFullYear(), cMonth=n.getMonth(), viewMode='month', teamFilter='all';
+let hiddenTypes=new Set();
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS=['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+function pad(v){return String(v).padStart(2,'0');}
+function ds(y,m,d){return `${y}-${pad(m+1)}-${pad(d)}`;}
+function isWk(s, worker){const d=new Date(s+'T12:00:00');const dow=d.getDay();if(dow===0||dow===6)return true;if(worker&&worker.noFriday&&dow===5)return true;if(worker&&worker.noMonday&&dow===1)return true;return false;}
+function dim(y,m){return new Date(y,m+1,0).getDate();}
+
+function cellType(w,dateStr){
+  if(isWk(dateStr,w))         return{t:'weekend',l:'Weekend'};
+  if(HOLIDAYS.has(dateStr)) return{t:'holiday',l:'Public Holiday'};
+  if(AC_OOO.has(dateStr))   return{t:'acooo',  l:'AC company off'};
+  for(const e of ENTRIES){
+    if(e.username!==w.name||dateStr<e.start||dateStr>e.end) continue;
+    const etype=e.type;
+    const key=etype==='Vacations'?(e.status==='Accepted'?'vacation-accepted':'vacation-pending'):etype.toLowerCase();
+    if(hiddenTypes.has(key)) continue;
+    if(etype==='Vacations') return e.status==='Accepted'?{t:'vacation-accepted',l:'Vacation · Accepted'}:{t:'vacation-pending',l:`Vacation · ${e.status||'Pending'}`};
+    if(etype==='HO')     return{t:'ho',    l:'Home Office'};
+    if(etype==='Krank')  return{t:'krank', l:'Krank (Sick)'};
+    if(etype==='ACGft')  return{t:'acgft', l:'AC Gift'};
+    if(etype==='Remote') return{t:'remote',l:'Remote'};
+  }
+  return{t:'empty',l:''};
+}
+
+function buildDates(){
+  const d=[];
+  if(viewMode==='month'){const n=dim(cYear,cMonth);for(let i=1;i<=n;i++)d.push(ds(cYear,cMonth,i));}
+  else if(viewMode==='quarter'){const sm=Math.floor(cMonth/3)*3;for(let m=sm;m<sm+3;m++){const n=dim(cYear,m);for(let i=1;i<=n;i++)d.push(ds(cYear,m,i));}}
+  else{for(let m=0;m<12;m++){const n=dim(cYear,m);for(let i=1;i<=n;i++)d.push(ds(cYear,m,i));}}
+  return d;
+}
+
+function visWorkers(){return WORKERS.filter(w=>teamFilter==='all'||w.team===teamFilter);}
+
+function render(){
+  const workers=visWorkers(), dates=buildDates(), today=new Date().toISOString().slice(0,10);
+
+  if(viewMode==='month') {document.getElementById('pTitle').textContent=`${MONTHS[cMonth]} ${cYear}`;document.getElementById('pSub').textContent=`${dates.length} days`;}
+  else if(viewMode==='quarter'){const q=Math.floor(cMonth/3)+1;document.getElementById('pTitle').textContent=`Q${q} · ${cYear}`;document.getElementById('pSub').textContent=`${dates.length} days`;}
+  else{document.getElementById('pTitle').textContent=`${cYear} · Full Year`;document.getElementById('pSub').textContent=`${dates.length} days`;}
+
+  const head=document.getElementById('calHead'); head.innerHTML='';
+  const hr=document.createElement('tr');
+  hr.innerHTML=`<th class="cn">Name</th><th class="ct">Team</th>`;
+  let lastM=-1;
+  dates.forEach(ds2=>{
+    const d=new Date(ds2+'T12:00:00'),dow=d.getDay(),wk=dow===0||dow===6,hol=HOLIDAYS.has(ds2);
+    let cls='dh'; if(wk)cls+=' wk'; else if(hol)cls+=' hol';
+    const mn=d.getMonth();
+    let ms=''; if(mn!==lastM&&viewMode!=='month'){ms=`<div class="msep">${MONTHS[mn].slice(0,3)}</div>`;lastM=mn;}
+    const th=document.createElement('th'); th.className=cls;
+    th.innerHTML=`${ms}<div class="dnum">${d.getDate()}</div><div class="dname">${DAYS[dow]}</div>`;
+    hr.appendChild(th);
+  });
+  head.appendChild(hr);
+
+  const body=document.getElementById('calBody'); body.innerHTML='';
+  let vac=0,ho=0,krank=0,abs=0;
+  workers.forEach(w=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="cn cn-clickable" onclick="openWorkerPanel('${w.name}')" title="Click to view stats"><div class="wname"><span>${w.name}${w.noFriday?' <span style="font-size:8px;font-weight:700;color:var(--gold);letter-spacing:.5px;vertical-align:middle;">no Fri</span>':w.noMonday?' <span style="font-size:8px;font-weight:700;color:var(--gold);letter-spacing:.5px;vertical-align:middle;">no Mon</span>':''}</span>${w.role?`<span class="wrole">${w.role}</span>`:''}</div></td><td class="ct">${w.team}</td>`;
+    dates.forEach(ds2=>{
+      const{t,l}=cellType(w,ds2);
+      const td=document.createElement('td'); td.className=`dc t-${t}`;
+      if(ds2===today)td.classList.add('today');
+      if(l)td.title=`${w.name} · ${ds2} · ${l}`;
+      if(!isWk(ds2,w)&&!HOLIDAYS.has(ds2)){
+        if(t==='vacation-accepted'||t==='vacation-pending')vac++;
+        if(t==='ho')ho++;
+        if(t==='krank')krank++;
+        if(t==='vacation-accepted'||t==='vacation-pending'||t==='krank')abs++;
+      }
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+  document.getElementById('sv').textContent=vac;
+  document.getElementById('sho').textContent=ho;
+  document.getElementById('sk').textContent=krank;
+  document.getElementById('sa').textContent=abs;
+  document.getElementById('sw').textContent=workers.length;
+  document.getElementById('sd').textContent=dates.length;
+}
+
+function prevPeriod(){
+  if(viewMode==='month'){cMonth--;if(cMonth<0){cMonth=11;cYear--;}}
+  else if(viewMode==='quarter'){cMonth-=3;if(cMonth<0){cMonth+=12;cYear--;}}
+  else cYear--;
+  HOLIDAYS=getBavariaHolidays(cYear);render();
+}
+function nextPeriod(){
+  if(viewMode==='month'){cMonth++;if(cMonth>11){cMonth=0;cYear++;}}
+  else if(viewMode==='quarter'){cMonth+=3;if(cMonth>11){cMonth-=12;cYear++;}}
+  else cYear++;
+  HOLIDAYS=getBavariaHolidays(cYear);render();
+}
+function goToday(){const n=new Date();cYear=n.getFullYear();cMonth=n.getMonth();render();}
+
+function toggleLeg(el){
+  const t=el.dataset.type;
+  if(hiddenTypes.has(t)){hiddenTypes.delete(t);el.classList.remove('dimmed');}
+  else{hiddenTypes.add(t);el.classList.add('dimmed');}
+  render();
+}
+
+document.getElementById('yearInput').addEventListener('change',e=>{cYear=parseInt(e.target.value);HOLIDAYS=getBavariaHolidays(cYear);render();});
+document.getElementById('viewMode').addEventListener('change',e=>{viewMode=e.target.value;render();});
+document.getElementById('teamFilter').addEventListener('change',e=>{teamFilter=e.target.value;render();});
+
+function initUI(){
+  const teams=[...new Set(WORKERS.map(w=>w.team).filter(Boolean))].sort();
+  const sel=document.getElementById('teamFilter');
+  teams.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o);});
+  refreshWorkerSelect();
+}
+
+function openModal(){
+  const t=new Date().toISOString().slice(0,10);
+  document.getElementById('nStart').value=t;
+  document.getElementById('nEnd').value=t;
+  document.getElementById('nType').value='Vacations';
+  document.getElementById('nWorker').value='__ALL__';
+  document.getElementById('statusRow').style.display='';
+  document.getElementById('entryPreview').style.display='';
+  document.getElementById('entryPreview').innerHTML=`⭐ This entry will be added for <strong>all ${WORKERS.length} workers</strong> simultaneously.`;
+  document.getElementById('nWorker').closest('.frow').style.display='';
+  document.getElementById('halfDayRow').style.display='';
+  if(document.getElementById('nHalfDay')) document.getElementById('nHalfDay').checked=false;
+  document.getElementById('moverlay').classList.add('open');
+}
+function closeModal(){document.getElementById('moverlay').classList.remove('open');}
+async function addEntry(){
+  const u=document.getElementById('nWorker').value,t=document.getElementById('nType').value,s=document.getElementById('nStatus').value,s1=document.getElementById('nStart').value,s2=document.getElementById('nEnd').value;
+  if(!s1||!s2||s1>s2){alert('Check dates.');return;}
+
+  if(t==='AC_OOO'){
+    const halfDay = document.getElementById('nHalfDay') && document.getElementById('nHalfDay').checked;
+    const val = halfDay ? 0.5 : 1;
+    let cur=new Date(s1+'T12:00:00');
+    const endD=new Date(s2+'T12:00:00');
+    while(cur<=endD){
+      const ds=cur.toISOString().slice(0,10);
+      AC_OOO.set(ds, val);
+      syncAddOOO(ds,val);
+      cur.setDate(cur.getDate()+1);
+    }
+    closeModal();render();
+    document.getElementById('statusMsg').textContent=`✓ AC ooo added (${s1} → ${s2}${halfDay?' · ½ day':''})`;
+    return;
+  }
+
+  const halfDay = document.getElementById('nHalfDay') && document.getElementById('nHalfDay').checked;
+  const dayVal  = halfDay ? 0.5 : 1;
+
+  if(u==='__ALL__'){
+    const newEs=WORKERS.map(w=>({username:w.name,start:s1,end:s2,status:s,type:t,dayValue:dayVal}));
+    ENTRIES.push(...newEs);
+    closeModal();render();
+    setStatus('Saving…');
+    for(const ne of newEs) await syncAdd(ne);
+    setStatus(`✓ Added for all ${WORKERS.length} workers`);
+    return;
+  }
+
+  const ne={username:u,start:s1,end:s2,status:s,type:t,dayValue:dayVal};
+  ENTRIES.push(ne);
+  closeModal();render();
+  setStatus('Saving…');
+  await syncAdd(ne);
+  setStatus(`✓ ${ENTRIES.length} entries`);
+}
+
+function handleImport(){/* replaced by SharePoint sync */}
+
+function exportCSV(){
+  const rows=[['Username','Start','End','Status','Type']];
+  ENTRIES.forEach(e=>rows.push([e.username,e.start,e.end,e.status||'',e.type]));
+  const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`ac_entries_${cYear}.csv`;a.click();
+}
+
+
+function openTeamModal(){
+  renderWorkerList();
+  // populate team datalist
+  const dl=document.getElementById('teamSuggestions');
+  dl.innerHTML='';
+  [...new Set(WORKERS.map(w=>w.team).filter(Boolean))].sort().forEach(t=>{
+    const o=document.createElement('option');o.value=t;dl.appendChild(o);
+  });
+  document.getElementById('teamOverlay').classList.add('open');
+}
+function closeTeamModal(){document.getElementById('teamOverlay').classList.remove('open');}
+
+function renderWorkerList(){
+  const list=document.getElementById('workerList');
+  list.innerHTML='';
+  document.getElementById('workerCount').textContent=WORKERS.length;
+  // group by team
+  const byTeam={};
+  WORKERS.forEach(w=>{if(!byTeam[w.team])byTeam[w.team]=[];byTeam[w.team].push(w);});
+  Object.keys(byTeam).sort().forEach(team=>{
+    const grp=document.createElement('div');
+    grp.style.marginBottom='4px';
+    grp.innerHTML=`<div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-400);padding:6px 2px 3px;">${team}</div>`;
+    byTeam[team].forEach(w=>{
+      const row=document.createElement('div');
+      row.className='worker-row';
+      row.innerHTML=`
+        <span class="wrow-name">${w.name}</span>
+        <span class="wrow-team">${w.team}</span>
+        <span class="wrow-role">${w.role||'—'}</span>
+        <label title="Day off: which weekday this worker doesn't work" style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:var(--gray-400);cursor:pointer;white-space:nowrap;">
+          <select onchange="setDayOff('${w.name}',this.value)" style="font-family:'Instrument Sans',sans-serif;font-size:10px;font-weight:700;background:${(w.noFriday||w.noMonday)?'var(--gold-pale)':'var(--gray-100)'};border:1px solid ${(w.noFriday||w.noMonday)?'var(--gold)':'var(--gray-200)'};color:${(w.noFriday||w.noMonday)?'var(--gold)':'var(--gray-400)'};border-radius:3px;padding:3px 5px;cursor:pointer;">
+            <option value="none" ${(!w.noFriday&&!w.noMonday)?'selected':''}>5d</option>
+            <option value="friday" ${w.noFriday?'selected':''}>no Fri</option>
+            <option value="monday" ${w.noMonday?'selected':''}>no Mon</option>
+          </select>
+        </label>
+        <button class="wrow-del" title="Remove ${w.name}" onclick="removeWorker('${w.name}')">×</button>
+      `;
+      grp.appendChild(row);
+    });
+    list.appendChild(grp);
+  });
+}
+
+async function removeWorker(name){
+  if(!confirm(`Remove ${name} from the team?\nThis will also hide all their calendar entries.`))return;
+  const wobj=WORKERS.find(x=>x.name===name);
+  const wid=wobj?._id;
+  const widx=WORKERS.findIndex(w=>w.name===name);
+  if(widx>-1)WORKERS.splice(widx,1);
+  renderWorkerList();
+  refreshAllDropdowns();
+  render();
+  await syncDelWorker(wid);
+}
+
+async function setDayOff(name, val){
+  const w=WORKERS.find(x=>x.name===name);
+  if(w){w.noFriday=val==='friday'; w.noMonday=val==='monday';}
+  renderWorkerList();
+  render();
+  await syncUpdateWorker(w);
+}
+
+async function addWorker(){
+  const name=document.getElementById('wName').value.trim();
+  const team=document.getElementById('wTeam').value.trim();
+  const role=document.getElementById('wRole').value.trim();
+  const dayOff=document.getElementById('wDayOff').value;
+  if(!name||!team){alert('Name and Team are required.');return;}
+  if(WORKERS.find(w=>w.name===name)){alert(`"${name}" already exists.`);return;}
+  const newW={name,team,role,vacDays:28,noFriday:dayOff==='friday',noMonday:dayOff==='monday'};
+  WORKERS.push(newW);
+  document.getElementById('wName').value='';
+  document.getElementById('wTeam').value='';
+  document.getElementById('wRole').value='';
+  document.getElementById('wDayOff').value='none';
+  renderWorkerList();
+  refreshAllDropdowns();
+  render();
+  await syncAddWorker(newW);
+}
+
+function refreshWorkerSelect(){
+  const ws=document.getElementById('nWorker');
+  if(!ws)return;
+  const prev=ws.value;
+  ws.innerHTML='';
+  const allOpt=document.createElement('option');allOpt.value='__ALL__';allOpt.textContent='⭐ All Workers';ws.appendChild(allOpt);
+  const sep=document.createElement('option');sep.disabled=true;sep.textContent='──────────';ws.appendChild(sep);
+  WORKERS.forEach(w=>{const o=document.createElement('option');o.value=w.name;o.textContent=`${w.name} (${w.team})`;ws.appendChild(o);});
+  if([...ws.options].find(o=>o.value===prev))ws.value=prev;
+}
+
+function onTypeChange(){
+  const t=document.getElementById('nType').value;
+  const statusRow=document.getElementById('statusRow');
+  const preview=document.getElementById('entryPreview');
+  statusRow.style.display=(t==='HO'||t==='Krank'||t==='AC_OOO'||t==='Remote')?'none':'';
+  if(t==='AC_OOO'){
+    preview.style.display='';
+    preview.innerHTML='🏢 <strong>AC ooo</strong> marks these days as company-wide off for <em>all workers</em> — no individual selection needed.';
+    document.getElementById('nWorker').closest('.frow').style.display='none';
+    document.getElementById('halfDayRow').style.display='';
+  } else if(t==='Vacations'){
+    preview.style.display='none';
+    document.getElementById('nWorker').closest('.frow').style.display='';
+    document.getElementById('halfDayRow').style.display='';
+  } else {
+    preview.style.display='none';
+    document.getElementById('nWorker').closest('.frow').style.display='';
+    document.getElementById('halfDayRow').style.display='none';
+    if(document.getElementById('nHalfDay')) document.getElementById('nHalfDay').checked=false;
+  }
+}
+
+function onWorkerChange(){
+  const u=document.getElementById('nWorker').value;
+  const preview=document.getElementById('entryPreview');
+  if(u==='__ALL__'){
+    preview.style.display='';
+    preview.innerHTML=`⭐ This entry will be added for <strong>all ${WORKERS.length} workers</strong> simultaneously.`;
+  } else {
+    preview.style.display='none';
+  }
+}
+
+
+// ── WORKER STATS PANEL ──
+let wpWorker = null;
+let wpYear   = new Date().getFullYear();
+
+const TYPE_COLORS = {
+  'Vacations': {acc:'#00873A', pend:'#7DC89A'},
+  'HO':    '#D4701E',
+  'Krank': '#C0392B',
+  'ACGft': '#1A5FA8',
+  'Remote':'#B8860B',
+};
+const TYPE_LABELS = {
+  'Vacations':'Vacation','HO':'Home Office','Krank':'Sick / Krank','ACGft':'AC Gift','Remote':'Remote'
+};
+
+function dayWeight(dateStr) {
+  // Returns the weight of a single date: 0 (weekend/holiday), 0.5 (half AC ooo), 1 (full working day)
+  // Used for counting how many "days" an entry spans
+  return AC_OOO.has(dateStr) ? AC_OOO.get(dateStr) : 1;
+}
+
+function countWorkingDays(start, end, year, includeOoo=false, noFriday=false, noMonday=false) {
+  // Count working days (Mon-Fri, not public holiday)
+  // noFriday=true: treat Friday as weekend (4-day week workers)
+  // noMonday=true: treat Monday as weekend (4-day week workers)
+  // includeOoo=false: skip AC_OOO days entirely (for vacation entries)
+  // includeOoo=true:  count AC_OOO days at their value (for ooo accounting)
+  let count = 0;
+  let cur = new Date(start + 'T12:00:00');
+  const endD = new Date(end + 'T12:00:00');
+  const hols = getBavariaHolidays(year);
+  while (cur <= endD) {
+    const ds = cur.toISOString().slice(0,10);
+    const dow = cur.getDay();
+    const isWeekend = dow === 0 || dow === 6 || (noFriday && dow === 5) || (noMonday && dow === 1);
+    if (!isWeekend && !hols.has(ds)) {
+      if (AC_OOO.has(ds)) {
+        if (includeOoo) count += AC_OOO.get(ds);
+      } else {
+        count++;
+      }
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
+
+function countOooDaysInRange(start, end) {
+  // Sum of AC_OOO day values (1 or 0.5) within a date range, weekdays only
+  let total = 0;
+  let cur = new Date(start + 'T12:00:00');
+  const endD = new Date(end + 'T12:00:00');
+  while (cur <= endD) {
+    const ds = cur.toISOString().slice(0,10);
+    const dow = cur.getDay();
+    if (dow !== 0 && dow !== 6 && AC_OOO.has(ds)) total += AC_OOO.get(ds);
+    cur.setDate(cur.getDate() + 1);
+  }
+  return total;
+}
+
+function getVacUsedInYear(name, year) {
+  // Count only vacation days (Accepted) used within a specific calendar year
+  let used = 0;
+  ENTRIES.forEach(e => {
+    if (e.username !== name || e.type !== 'Vacations' || e.status !== 'Accepted') return;
+    const eStart = e.start > `${year}-01-01` ? e.start : `${year}-01-01`;
+    const eEnd   = e.end   < `${year}-12-31` ? e.end   : `${year}-12-31`;
+    if (eStart > eEnd) return;
+    if (e.start.slice(0,4) > String(year) || e.end.slice(0,4) < String(year)) return;
+    used += countWorkingDays(eStart, eEnd, year);
+  });
+  return used;
+}
+
+// Resturlaub 2025 — actual carried-over days into 2026 (half-days allowed)
+const RESTURLAUB_2025 = {
+  'FA':0,'LJA':5,'CB':7.5,'JHB':3,'BB':2,'SH':3.5,'TL':5.5,
+  'NM':0,'AP':6,'VP':8,'NR':0,'DT':3,'MSW':1,'TW':2,
+  'SBR':0,'AB':0,'FS':0,'TB':3,'KK':1,'AMS':3.5
+};
+
+function getCarryover(name, year) {
+  if (year === 2026) {
+    // Use real Resturlaub figures from 2025
+    return RESTURLAUB_2025[name] !== undefined ? RESTURLAUB_2025[name] : 0;
+  }
+  // For future years: calculate dynamically from entries
+  const w = WORKERS.find(x => x.name === name);
+  const prevYearDays = w ? (w.vacDays || 0) : 0;
+  const prevUsed = getVacUsedInYear(name, year - 1);
+  return Math.max(0, prevYearDays - prevUsed);
+}
+
+function getWorkerStats(name, year) {
+  const today       = new Date().toISOString().slice(0,10);
+  const resetDate   = `${year}-03-31`;
+  const resetPassed = today > resetDate;
+  const worker      = WORKERS.find(w => w.name === name);
+  const baseDays    = worker ? (worker.vacDays || 0) : 0;
+  const noFriday    = worker ? !!worker.noFriday : false;
+  const noMonday    = worker ? !!worker.noMonday : false;
+
+  // ── Carryover: always calculate it regardless of reset ──
+  // We need it to know how many carryover days were consumed before the reset
+  const carryoverTotal = getCarryover(name, year); // days brought from prev year
+
+  // ── Count vacation days used BEFORE reset (Jan 1 → Mar 31) ──
+  // These consume carryover first, then base days
+  let usedBeforeReset = 0;
+  let usedAfterReset  = 0;
+
+  const stats = { vacAccepted:0, vacPending:0, ho:0, krank:0, acgft:0, remote:0, entries:[] };
+
+  // Count AC_OOO days in this year that fall on working days (deducted from budget)
+  let oooDeducted = 0;
+  let oooDeductedBeforeReset = 0;
+  const yearStart = `${year}-01-01`;
+  const yearEnd   = `${year}-12-31`;
+  AC_OOO.forEach((val, ds) => {
+    if (ds < yearStart || ds > yearEnd) return;
+    const dow = new Date(ds+'T12:00:00').getDay();
+    const hols = getBavariaHolidays(year);
+    const isWeekend = dow === 0 || dow === 6 || (noFriday && dow === 5) || (noMonday && dow === 1);
+    if (!isWeekend && !hols.has(ds)) {
+      oooDeducted += val;
+      if (ds <= resetDate) oooDeductedBeforeReset += val;
+    }
+  });
+
+  ENTRIES.forEach(e => {
+    if (e.username !== name) return;
+    const eStart = e.start > yearStart ? e.start : yearStart;
+    const eEnd   = e.end   < yearEnd   ? e.end   : yearEnd;
+    if (eStart > eEnd) return;
+    if (e.start.slice(0,4) > String(year) || e.end.slice(0,4) < String(year)) return;
+
+    // Apply dayValue multiplier if entry is a half-day
+    const multiplier = (e.dayValue !== undefined) ? e.dayValue : 1;
+    const days = multiplier < 1
+      ? multiplier  // single half-day entry
+      : countWorkingDays(eStart, eEnd, year, false, noFriday, noMonday);
+    stats.entries.push({ ...e, calcDays: days });
+
+    if (e.type === 'Vacations' && e.status === 'Accepted') {
+      stats.vacAccepted += days;
+      const beforeEnd  = eEnd  < resetDate ? eEnd  : resetDate;
+      const afterStart = eStart > resetDate ? eStart : resetDate;
+      if (eStart <= resetDate) usedBeforeReset += multiplier < 1 ? multiplier : countWorkingDays(eStart, beforeEnd, year, false, noFriday, noMonday);
+      if (eEnd   >  resetDate) usedAfterReset  += multiplier < 1 ? multiplier : countWorkingDays(afterStart, eEnd, year, false, noFriday, noMonday);
+    } else if (e.type === 'Vacations') {
+      stats.vacPending += days;
+    } else if (e.type === 'HO')   stats.ho     += days;
+    else if (e.type === 'Krank')  stats.krank  += days;
+    else if (e.type === 'ACGft')  stats.acgft  += days;
+    else if (e.type === 'Remote') stats.remote += days;
+  });
+
+  // Add AC_OOO to accepted (they are company-mandated used days)
+  stats.vacAccepted    += oooDeducted;
+  stats.oooDeducted     = oooDeducted;
+  usedBeforeReset      += oooDeductedBeforeReset;
+
+  // ── Carryover consumed = min(usedBeforeReset, carryoverTotal) ──
+  // Carryover days are consumed first in Q1
+  const carryoverUsed = Math.min(usedBeforeReset, carryoverTotal);
+  const carryoverLeft = resetPassed ? 0 : Math.max(0, carryoverTotal - carryoverUsed);
+
+  // ── Base days consumed = total accepted - carryover consumed ──
+  const baseUsed = Math.max(0, stats.vacAccepted - carryoverUsed);
+  const baseLeft = Math.max(0, baseDays - baseUsed);
+
+  // ── Pending also counts against base (projected) ──
+  const basePendingLeft = Math.max(0, baseLeft - stats.vacPending);
+
+  // ── % of BASE days used (what matters after reset) ──
+  const pctBase = baseDays > 0 ? Math.min(100, Math.round(baseUsed / baseDays * 100)) : 0;
+
+  // ── Current effective budget ──
+  // Before reset: base + carryover remaining
+  // After reset:  base only
+  const currentBudget = resetPassed
+    ? baseDays
+    : baseDays + carryoverLeft;
+
+  const currentLeft = resetPassed
+    ? baseLeft
+    : baseLeft + carryoverLeft;
+
+  // ── Offen = total budget - accepted - pending ──
+  const totalBudget = baseDays + carryoverTotal;
+  const offen = Math.max(0, totalBudget - stats.vacAccepted - stats.vacPending);
+
+  stats.baseDays       = baseDays;
+  stats.baseUsed       = baseUsed;
+  stats.baseLeft       = baseLeft;
+  stats.basePendingLeft= basePendingLeft;
+  stats.carryoverTotal = carryoverTotal;
+  stats.carryoverUsed  = carryoverUsed;
+  stats.carryoverLeft  = carryoverLeft;
+  stats.currentBudget  = currentBudget;
+  stats.currentLeft    = currentLeft;
+  stats.pctBase        = pctBase;
+  stats.vacUsed        = stats.vacAccepted + stats.vacPending;
+  stats.resetPassed    = resetPassed;
+  stats.offen          = offen;
+  stats.totalBudget    = totalBudget;
+
+  return stats;
+}
+
+function openWorkerPanel(name) {
+  wpWorker = name;
+  wpYear = cYear;
+  renderWorkerPanel();
+  document.getElementById('wpanelOverlay').classList.add('open');
+}
+
+function closeWorkerPanel() {
+  document.getElementById('wpanelOverlay').classList.remove('open');
+}
+
+function wpPrevYear() { wpYear--; renderWorkerPanel(); }
+function wpNextYear() { wpYear++; renderWorkerPanel(); }
+
+function renderWorkerPanel() {
+  const w = WORKERS.find(x => x.name === wpWorker);
+  if (!w) return;
+  const stats = getWorkerStats(wpWorker, wpYear);
+
+  document.getElementById('wp-name').textContent = wpWorker;
+  document.getElementById('wp-meta').textContent = [w.role, w.team].filter(Boolean).join(' · ');
+  document.getElementById('wp-year').textContent = wpYear;
+
+  // Reset notice
+  const notice = document.getElementById('wp-reset-notice');
+  const resetDate = `${wpYear}-03-31`;
+  const todayStr = new Date().toISOString().slice(0,10);
+  if (todayStr <= resetDate && stats.carryover > 0) {
+    notice.style.display = '';
+    const daysLeft = Math.round((new Date(resetDate+'T12:00:00') - new Date()) / 86400000);
+    notice.innerHTML = `⚠️ <strong>${stats.carryover} carryover days</strong> from ${wpYear-1} expire on <strong>31 March ${wpYear}</strong> (${daysLeft} day${daysLeft!==1?'s':''} away). Use them or lose them.`;
+  } else if (todayStr <= resetDate && stats.carryover === 0) {
+    notice.style.display = '';
+    notice.innerHTML = `ℹ️ Vacation days reset on <strong>31 March ${wpYear}</strong>. No carryover from ${wpYear-1}.`;
+  } else {
+    notice.style.display = 'none';
+  }
+
+  // ── Budget bar — always based on BASE days (stable after reset) ──
+  const barColor = stats.pctBase >= 90 ? '#C0392B' : stats.pctBase >= 70 ? '#D4701E' : '#00873A';
+
+  // Two-segment bar: carryover used (gold) + base used (green/orange/red)
+  const pctCarryoverBar = stats.baseDays > 0 ? Math.min(100, Math.round(stats.carryoverUsed / stats.baseDays * 100)) : 0;
+  // Base bar is always % of baseDays
+  const pctBaseBar = stats.pctBase;
+
+  document.getElementById('wp-vac-budget').innerHTML = `
+    <!-- SECTION 1: Base contract -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-400);margin-bottom:6px">
+        Base Contract (${wpYear})
+      </div>
+      <div class="vac-bar-row">
+        <div class="vac-bar-track" style="position:relative;">
+          <div class="vac-bar-fill" style="width:${pctBaseBar}%;background:${barColor};position:absolute;left:0;top:0;height:100%"></div>
+        </div>
+        <div class="vac-bar-pct" style="color:${barColor}">${pctBaseBar}%</div>
+      </div>
+      <div class="vac-numbers" style="margin-top:8px">
+        <div class="vac-num-block">
+          <span class="vac-num-label">Base days</span>
+          <span class="vac-num-val" style="color:var(--navy)">${stats.baseDays}</span>
+        </div>
+        <div class="vac-num-block">
+          <span class="vac-num-label">Used (base)</span>
+          <span class="vac-num-val" style="color:#00873A">${stats.baseUsed}</span>
+        </div>
+        <div class="vac-num-block">
+          <span class="vac-num-label">Pending</span>
+          <span class="vac-num-val" style="color:#D4701E">${stats.vacPending}</span>
+        </div>
+        <div class="vac-num-block">
+          <span class="vac-num-label">Base left</span>
+          <span class="vac-num-val" style="color:${stats.basePendingLeft===0?'#C0392B':'var(--navy)'}">${stats.basePendingLeft}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: Carryover (only shown if relevant) -->
+    ${stats.carryoverTotal > 0 ? `
+    <div style="border-top:1px solid var(--gray-200);padding-top:12px;margin-bottom:4px">
+      <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-400);margin-bottom:6px">
+        Carryover from ${wpYear-1}
+        ${stats.resetPassed ? '<span style="color:#C0392B;margin-left:6px">EXPIRED 31 Mar</span>' : ''}
+      </div>
+      <div class="vac-numbers">
+        <div class="vac-num-block">
+          <span class="vac-num-label">Carried over</span>
+          <span class="vac-num-val" style="color:var(--gold)">${stats.carryoverTotal}</span>
+        </div>
+        <div class="vac-num-block">
+          <span class="vac-num-label">Used (Q1)</span>
+          <span class="vac-num-val" style="color:#00873A">${stats.carryoverUsed}</span>
+        </div>
+        <div class="vac-num-block">
+          <span class="vac-num-label">${stats.resetPassed ? 'Expired' : 'Still available'}</span>
+          <span class="vac-num-val" style="color:${stats.resetPassed?'#C0392B':stats.carryoverLeft===0?'#00873A':'var(--gold)'}">${stats.carryoverLeft}</span>
+        </div>
+      </div>
+    </div>` : ''}
+
+    <!-- SECTION 3: Current effective summary -->
+    <div style="background:var(--gray-100);border-radius:4px;padding:10px 12px;margin-top:10px;display:flex;gap:20px;flex-wrap:wrap;">
+      <div class="vac-num-block">
+        <span class="vac-num-label">Total budget</span>
+        <span class="vac-num-val" style="color:var(--navy);font-size:20px">${stats.totalBudget}</span>
+      </div>
+      <div class="vac-num-block">
+        <span class="vac-num-label">Used ✓</span>
+        <span class="vac-num-val" style="color:#00873A;font-size:20px">${stats.vacAccepted}</span>
+      </div>
+      <div class="vac-num-block">
+        <span class="vac-num-label">Pending</span>
+        <span class="vac-num-val" style="color:#D4701E;font-size:20px">${stats.vacPending}</span>
+      </div>
+      <div class="vac-num-block" style="border-left:2px solid var(--gray-200);padding-left:16px;margin-left:4px;">
+        <span class="vac-num-label" style="color:var(--navy);font-weight:800">Offen</span>
+        <span class="vac-num-val" style="color:${stats.offen===0?'#C0392B':stats.offen<=3?'#D4701E':'var(--navy)'};font-size:24px;font-weight:800">${stats.offen}</span>
+      </div>
+    </div>
+  `;
+
+  // Summary stats
+  document.getElementById('wp-stats').innerHTML = `
+    ${stats.oooDeducted > 0 ? `<div class="stat-row"><div class="stat-row-dot" style="background:var(--col-acooo)"></div><span class="stat-row-label">AC ooo (deducted)</span><span class="stat-row-val" style="color:var(--col-acooo)">${stats.oooDeducted}</span></div>` : ''}
+    ${stats.ho > 0 ? `<div class="stat-row"><div class="stat-row-dot" style="background:#D4701E"></div><span class="stat-row-label">Home Office days</span><span class="stat-row-val" style="color:#D4701E">${stats.ho}</span></div>` : ''}
+    ${stats.krank > 0 ? `<div class="stat-row"><div class="stat-row-dot" style="background:#C0392B"></div><span class="stat-row-label">Sick days (Krank)</span><span class="stat-row-val" style="color:#C0392B">${stats.krank}</span></div>` : ''}
+    ${stats.acgft > 0 ? `<div class="stat-row"><div class="stat-row-dot" style="background:#1A5FA8"></div><span class="stat-row-label">AC Gift days</span><span class="stat-row-val" style="color:#1A5FA8">${stats.acgft}</span></div>` : ''}
+    ${stats.remote > 0 ? `<div class="stat-row"><div class="stat-row-dot" style="background:#B8860B"></div><span class="stat-row-label">Remote days</span><span class="stat-row-val" style="color:#B8860B">${stats.remote}</span></div>` : ''}
+    ${stats.oooDeducted===0&&stats.ho===0&&stats.krank===0&&stats.acgft===0&&stats.remote===0 ? '<div style="font-size:12px;color:var(--gray-400);padding:4px 0">No other absences this year.</div>' : ''}
+  `;
+
+  // Entry list
+  document.getElementById('wp-entry-count').textContent = `(${stats.entries.length})`;
+  const entryColors = {'Vacations':'#00873A','HO':'#D4701E','Krank':'#C0392B','ACGft':'#1A5FA8','Remote':'#B8860B'};
+  document.getElementById('wp-entries').innerHTML = stats.entries.length === 0
+    ? '<div style="font-size:12px;color:var(--gray-400);padding:4px 0">No entries this year.</div>'
+    : stats.entries.sort((a,b)=>a.start.localeCompare(b.start)).map((e,i) => {
+        const col = e.type==='Vacations'&&e.status==='Accepted' ? '#00873A'
+                  : e.type==='Vacations' ? '#7DC89A'
+                  : entryColors[e.type]||'#999';
+        const statusHtml = e.type==='Vacations'
+          ? `<span class="entry-item-status ${e.status==='Accepted'?'status-accepted':'status-pending'}">${e.status||'Pending'}</span>`
+          : '';
+        return `<div class="entry-item">
+          <div class="entry-item-dot" style="background:${col}"></div>
+          <span class="entry-item-type">${TYPE_LABELS[e.type]||e.type}</span>
+          <span class="entry-item-dates">${e.start}${e.end!==e.start?' → '+e.end:''} (${e.calcDays}d)</span>
+          ${statusHtml}
+          <button class="entry-item-del" onclick="deleteEntry('${e.username}','${e.start}','${e.end}','${e.type}')" title="Delete">×</button>
+        </div>`;
+      }).join('');
+}
+
+async function deleteEntry(username, start, end, type) {
+  if (!confirm(`Delete ${type} entry for ${username}\n${start} → ${end}?`)) return;
+  const idx = ENTRIES.findIndex(e => e.username===username && e.start===start && e.end===end && e.type===type);
+  if (idx > -1) { const e=ENTRIES[idx]; ENTRIES.splice(idx, 1); renderWorkerPanel(); render(); await syncDel(e); }
+}
+function refreshAllDropdowns(){
+  // Team filter
+  const tf=document.getElementById('teamFilter');
+  const prev=tf.value;
+  tf.innerHTML='<option value="all">All Teams</option>';
+  [...new Set(WORKERS.map(w=>w.team).filter(Boolean))].sort().forEach(t=>{
+    const o=document.createElement('option');o.value=t;o.textContent=t;tf.appendChild(o);
+  });
+  tf.value=WORKERS.find(w=>w.team===prev)?prev:'all';
+  teamFilter=tf.value;
+  // Entry modal worker select
+  refreshWorkerSelect();
+  // Team datalist
+  const dl=document.getElementById('teamSuggestions');
+  if(dl){dl.innerHTML='';[...new Set(WORKERS.map(w=>w.team).filter(Boolean))].sort().forEach(t=>{const o=document.createElement('option');o.value=t;dl.appendChild(o);});}
+}
+
+// Start auth flow
+initAuth();
+</script>
+
+<!-- WORKER STATS PANEL -->
+<div class="wpanel-overlay" id="wpanelOverlay" onclick="if(event.target===this)closeWorkerPanel()">
+  <div class="wpanel" id="wpanel">
+    <div class="wpanel-header">
+      <div>
+        <div class="wpanel-name" id="wp-name">—</div>
+        <div class="wpanel-meta" id="wp-meta">—</div>
+      </div>
+      <button class="wpanel-close" onclick="closeWorkerPanel()">×</button>
+    </div>
+    <div class="wpanel-body">
+      <div class="wpanel-year-nav">
+        <button class="wpanel-year-btn" onclick="wpPrevYear()">‹</button>
+        <span class="wpanel-year-label" id="wp-year">2026</span>
+        <button class="wpanel-year-btn" onclick="wpNextYear()">›</button>
+        <span style="font-size:10px;color:var(--gray-400);margin-left:4px;">fiscal year view</span>
+      </div>
+
+      <div id="wp-reset-notice" class="reset-notice" style="display:none"></div>
+
+      <div class="wpanel-section-title">Vacation Budget</div>
+      <div class="vac-budget" id="wp-vac-budget"></div>
+
+      <div class="wpanel-section-title">Summary</div>
+      <div class="stat-rows" id="wp-stats"></div>
+
+      <div class="wpanel-section-title" style="margin-top:4px">All Entries <span id="wp-entry-count" style="font-weight:400;color:var(--gray-400)"></span></div>
+      <div class="entry-list" id="wp-entries"></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
