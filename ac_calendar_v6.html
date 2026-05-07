@@ -854,8 +854,8 @@ const msalApp = new msal.PublicClientApplication({
   },
   cache:{cacheLocation:'sessionStorage',storeAuthStateInCookie:false}
 });
-const SP_SCOPES   = ['https://allesanders.sharepoint.com/AllSites.Manage'];
-const SP_SCOPES_R = ['https://allesanders.sharepoint.com/AllSites.Read'];
+const SP_SCOPES   = ['https://graph.microsoft.com/Sites.ReadWrite.All'];
+const SP_SCOPES_R = ['https://graph.microsoft.com/Sites.Read.All'];
 let currentUser=null, isEditor=false, spToken=null, AC_OOO_IDs={};
 
 // ── UI helpers ──
@@ -881,7 +881,7 @@ function doLogout(){msalApp.logoutRedirect({postLogoutRedirectUri:window.locatio
 
 async function getToken(){
   const account=msalApp.getActiveAccount();if(!account)return null;
-  const scopes=isEditor?SP_SCOPES:SP_SCOPES_R;
+  const scopes=[...(isEditor?SP_SCOPES:SP_SCOPES_R),'User.Read'];
   try{const r=await msalApp.acquireTokenSilent({scopes,account});return r.accessToken;}
   catch(e){try{const r=await msalApp.acquireTokenPopup({scopes,account});return r.accessToken;}catch(e2){return null;}}
 }
@@ -903,32 +903,130 @@ async function afterLogin(account){
   initUI();render();
 }
 
-// ── SharePoint REST ──
-const SP_API=`${SP_SITE}/_api`;
-async function spFetch(url,opts={}){
-  if(!spToken)spToken=await getToken();
-  const r=await fetch(url,{...opts,headers:{'Authorization':`Bearer ${spToken}`,'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose',...(opts.headers||{})}});
-  if(r.status===204)return null;
-  const j=await r.json();
-  if(!r.ok)throw new Error(j.error?.message?.value||r.statusText);
+// ── Microsoft Graph API ──
+const GRAPH = 'https://graph.microsoft.com/v1.0';
+let graphSiteId = null;
+
+async function gFetch(url, opts={}){
+  if(!spToken) spToken = await getToken();
+  const r = await fetch(url, {
+    ...opts,
+    headers:{
+      'Authorization':`Bearer ${spToken}`,
+      'Content-Type':'application/json',
+      ...(opts.headers||{})
+    }
+  });
+  if(r.status===204||r.status===201&&!r.headers.get('content-type')?.includes('json')) return null;
+  const j = await r.json();
+  if(!r.ok) throw new Error(j.error?.message||r.statusText);
   return j;
 }
-async function spGet(p){return spFetch(`${SP_API}${p}`);}
-async function spPost(p,b){return spFetch(`${SP_API}${p}`,{method:'POST',body:JSON.stringify(b)});}
-async function spMerge(p,b){return spFetch(`${SP_API}${p}`,{method:'POST',body:JSON.stringify(b),headers:{'X-HTTP-Method':'MERGE','IF-MATCH':'*'}});}
-async function spDel(p){return spFetch(`${SP_API}${p}`,{method:'POST',body:'{}',headers:{'X-HTTP-Method':'DELETE','IF-MATCH':'*'}});}
-async function getItems(list,sel=''){let u=`/web/lists/getbytitle('${list}')/items?$top=5000`;if(sel)u+=`&$select=${sel}`;const r=await spGet(u);return r.d.results;}
-async function addItem(list,fields){const type=`SP.Data.${list.replace(/_/g,'')}ListItem`;const r=await spPost(`/web/lists/getbytitle('${list}')/items`,{__metadata:{type},...fields});return r.d.ID;}
-async function delItem(list,id){return spDel(`/web/lists/getbytitle('${list}')/items(${id})`);}
-async function listExists(name){try{await spGet(`/web/lists/getbytitle('${name}')/id`);return true;}catch(e){return false;}}
-async function createList(name,fields){
-  await spPost('/web/lists',{__metadata:{type:'SP.List'},BaseTemplate:100,Title:name,Description:'AC Calendar'});
-  for(const f of fields){try{await spPost(`/web/lists/getbytitle('${name}')/fields`,{__metadata:{type:'SP.Field'},FieldTypeKind:f.t,Title:f.n,MaxLength:f.ml||255});}catch(e){}}
+
+async function getSiteId(){
+  if(graphSiteId) return graphSiteId;
+  // allesanders.sharepoint.com:/sites/wiki
+  const r = await gFetch(`${GRAPH}/sites/allesanders.sharepoint.com:/sites/wiki`);
+  graphSiteId = r.id;
+  return graphSiteId;
 }
+
+async function getListId(listName){
+  const siteId = await getSiteId();
+  const r = await gFetch(`${GRAPH}/sites/${siteId}/lists?$filter=displayName eq '${listName}'&$select=id,displayName`);
+  return r.value?.[0]?.id || null;
+}
+
+// Cache list IDs
+const listIdCache = {};
+async function getListIdCached(name){
+  if(listIdCache[name]) return listIdCache[name];
+  const id = await getListId(name);
+  if(id) listIdCache[name] = id;
+  return id;
+}
+
+async function listExists(name){
+  return !!(await getListId(name));
+}
+
+async function createList(name, fields){
+  const siteId = await getSiteId();
+  // Create list
+  const list = await gFetch(`${GRAPH}/sites/${siteId}/lists`, {
+    method:'POST',
+    body: JSON.stringify({
+      displayName: name,
+      list:{ template:'genericList' }
+    })
+  });
+  listIdCache[name] = list.id;
+  // Add columns
+  for(const f of fields){
+    try{
+      const colDef = f.t===9
+        ? { name:f.n, number:{} }
+        : { name:f.n, text:{ maxLength:f.ml||255 } };
+      await gFetch(`${GRAPH}/sites/${siteId}/lists/${list.id}/columns`, {
+        method:'POST', body:JSON.stringify(colDef)
+      });
+    }catch(e){}
+  }
+}
+
 async function ensureLists(){
-  if(!await listExists(L_WORKERS))await createList(L_WORKERS,[{n:'WorkerName',t:2},{n:'Team',t:2},{n:'Role',t:2},{n:'VacDays',t:9},{n:'NoFriday',t:2},{n:'NoMonday',t:2}]);
-  if(!await listExists(L_ENTRIES))await createList(L_ENTRIES,[{n:'Username',t:2},{n:'StartDate',t:2},{n:'EndDate',t:2},{n:'Status',t:2},{n:'EntryType',t:2},{n:'DayValue',t:9}]);
-  if(!await listExists(L_OOO))await createList(L_OOO,[{n:'OooDate',t:2},{n:'DayVal',t:9}]);
+  if(!await listExists(L_WORKERS)) await createList(L_WORKERS,[
+    {n:'WorkerName',t:2},{n:'Team',t:2},{n:'Role',t:2},{n:'VacDays',t:9},
+    {n:'NoFriday',t:2},{n:'NoMonday',t:2},{n:'VacDaysByYear',t:2,ml:2000},{n:'PersonalDaysOff',t:2,ml:5000}
+  ]);
+  if(!await listExists(L_ENTRIES)) await createList(L_ENTRIES,[
+    {n:'Username',t:2},{n:'StartDate',t:2},{n:'EndDate',t:2},
+    {n:'Status',t:2},{n:'EntryType',t:2},{n:'DayValue',t:9}
+  ]);
+  if(!await listExists(L_OOO)) await createList(L_OOO,[
+    {n:'OooDate',t:2},{n:'DayVal',t:9}
+  ]);
+}
+
+async function getItems(listName, sel=''){
+  const siteId = await getSiteId();
+  const listId = await getListIdCached(listName);
+  if(!listId) return [];
+  let url = `${GRAPH}/sites/${siteId}/lists/${listId}/items?expand=fields&$top=5000`;
+  const r = await gFetch(url);
+  return (r.value||[]).map(i=>({Id:i.id, ...i.fields}));
+}
+
+async function addItem(listName, fields){
+  const siteId = await getSiteId();
+  const listId = await getListIdCached(listName);
+  const r = await gFetch(`${GRAPH}/sites/${siteId}/lists/${listId}/items`,{
+    method:'POST',
+    body: JSON.stringify({ fields })
+  });
+  return r.id;
+}
+
+async function updateItem(listName, id, fields){
+  const siteId = await getSiteId();
+  const listId = await getListIdCached(listName);
+  await gFetch(`${GRAPH}/sites/${siteId}/lists/${listId}/items/${id}/fields`,{
+    method:'PATCH',
+    body: JSON.stringify(fields)
+  });
+}
+
+async function delItem(listName, id){
+  const siteId = await getSiteId();
+  const listId = await getListIdCached(listName);
+  await gFetch(`${GRAPH}/sites/${siteId}/lists/${listId}/items/${id}`,{
+    method:'DELETE'
+  });
+}
+
+// Alias for backward compat
+async function spMerge(p, b){
+  // not used with Graph — replaced by updateItem
 }
 
 // ── Load / Seed ──
@@ -942,14 +1040,14 @@ async function loadAllData(){
       return;
     }
     const[ws,es,os]=await Promise.all([
-      getItems(L_WORKERS,'Id,WorkerName,Team,Role,VacDays,NoFriday,NoMonday'),
+      getItems(L_WORKERS,'Id,WorkerName,Team,Role,VacDays,NoFriday,NoMonday,VacDaysByYear,PersonalDaysOff'),
       getItems(L_ENTRIES,'Id,Username,StartDate,EndDate,Status,EntryType,DayValue'),
       getItems(L_OOO,'Id,OooDate,DayVal'),
     ]);
-    WORKERS=ws.map(i=>({_id:i.Id,name:i.WorkerName,team:i.Team||'',role:i.Role||'',vacDays:i.VacDays||0,noFriday:i.NoFriday==='true',noMonday:i.NoMonday==='true'}));
-    ENTRIES=es.map(i=>({_id:i.Id,username:i.Username,start:i.StartDate,end:i.EndDate,status:i.Status||'',type:i.EntryType,dayValue:i.DayValue||undefined}));
+    WORKERS=ws.map(i=>({_id:i.Id,name:i.WorkerName||'',team:i.Team||'',role:i.Role||'',vacDays:Number(i.VacDays)||0,noFriday:i.NoFriday==='true',noMonday:i.NoMonday==='true',vacDaysByYear:i.VacDaysByYear?tryParse(i.VacDaysByYear,{}):{},personalDaysOff:i.PersonalDaysOff?tryParse(i.PersonalDaysOff,[]):[]}));
+    ENTRIES=es.map(i=>({_id:i.Id,username:i.Username||'',start:i.StartDate||'',end:i.EndDate||'',status:i.Status||'',type:i.EntryType||'',dayValue:i.DayValue||undefined}));
     AC_OOO=new Map();AC_OOO_IDs={};
-    os.forEach(i=>{AC_OOO.set(i.OooDate,i.DayVal);AC_OOO_IDs[i.OooDate]=i.Id;});
+    os.forEach(i=>{if(i.OooDate){AC_OOO.set(i.OooDate,Number(i.DayVal)||1);AC_OOO_IDs[i.OooDate]=i.Id;}});
     setStatus(`✓ ${ENTRIES.length} entries loaded`);
   }catch(e){showError('Load error: '+e.message);loadSeedData();setStatus('⚠ Offline mode',true);}
 }
@@ -965,7 +1063,7 @@ async function syncAdd(e){if(!isEditor||!spToken)return;setSyncing(true);try{con
 async function syncDel(e){if(!isEditor||!spToken||!e._id)return;setSyncing(true);try{await delItem(L_ENTRIES,e._id);setStatus('✓ Deleted');}catch(ex){showError('Delete failed: '+ex.message);}setSyncing(false);}
 async function syncAddWorker(w){if(!isEditor||!spToken)return;setSyncing(true);try{const id=await addItem(L_WORKERS,{WorkerName:w.name,Team:w.team,Role:w.role,VacDays:w.vacDays,NoFriday:String(!!w.noFriday),NoMonday:String(!!w.noMonday)});w._id=id;}catch(ex){showError('Save failed: '+ex.message);}setSyncing(false);}
 async function syncDelWorker(id){if(!isEditor||!spToken||!id)return;setSyncing(true);try{await delItem(L_WORKERS,id);}catch(ex){showError('Delete failed: '+ex.message);}setSyncing(false);}
-async function syncUpdateWorker(w){if(!isEditor||!spToken||!w._id)return;setSyncing(true);try{await spMerge(`/web/lists/getbytitle('${L_WORKERS}')/items(${w._id})`,{__metadata:{type:`SP.Data.${L_WORKERS.replace(/_/g,'')}ListItem`},NoFriday:String(!!w.noFriday),NoMonday:String(!!w.noMonday)});}catch(ex){showError('Update failed: '+ex.message);}setSyncing(false);}
+async function syncUpdateWorker(w){if(!isEditor||!spToken||!w._id)return;setSyncing(true);try{await updateItem(L_WORKERS,w._id,{NoFriday:String(!!w.noFriday),NoMonday:String(!!w.noMonday)});}catch(ex){showError('Update failed: '+ex.message);}setSyncing(false);}
 async function syncAddOOO(date,val){if(!isEditor||!spToken)return;setSyncing(true);try{const id=await addItem(L_OOO,{OooDate:date,DayVal:val});AC_OOO_IDs[date]=id;}catch(ex){showError('Save OOO failed: '+ex.message);}setSyncing(false);}
 
 
@@ -1191,7 +1289,7 @@ const DAYS=['Su','Mo','Tu','We','Th','Fr','Sa'];
 
 function pad(v){return String(v).padStart(2,'0');}
 function ds(y,m,d){return `${y}-${pad(m+1)}-${pad(d)}`;}
-function isWk(s, worker){const d=new Date(s+'T12:00:00');const dow=d.getDay();if(dow===0||dow===6)return true;if(worker&&worker.noFriday&&dow===5)return true;if(worker&&worker.noMonday&&dow===1)return true;return false;}
+function isWk(s,w){const d=new Date(s+'T12:00:00'),dow=d.getDay();if(dow===0||dow===6)return true;if(w?.noFriday&&dow===5)return true;if(w?.noMonday&&dow===1)return true;if(w?.personalDaysOff&&w.personalDaysOff.includes(s))return true;return false;}
 function dim(y,m){return new Date(y,m+1,0).getDate();}
 
 function cellType(w,dateStr){
@@ -1886,6 +1984,86 @@ function refreshAllDropdowns(){
   if(dl){dl.innerHTML='';[...new Set(WORKERS.map(w=>w.team).filter(Boolean))].sort().forEach(t=>{const o=document.createElement('option');o.value=t;dl.appendChild(o);});}
 }
 
+
+let wpEditOpen = false;
+function toggleWpEdit(){
+  wpEditOpen = !wpEditOpen;
+  document.getElementById('wp-edit-section').style.display = wpEditOpen ? '' : 'none';
+  document.getElementById('wp-edit-toggle').textContent = wpEditOpen ? '▲ Close editor' : '✏️ Edit vacation days & personal days off';
+}
+
+function renderPersonalDaysList(w){
+  const container = document.getElementById('wp-personal-days-list');
+  const days = w.personalDaysOff || [];
+  if(days.length === 0){
+    container.innerHTML = '<span style="font-size:11px;color:var(--gray-400);">No personal days off added.</span>';
+    return;
+  }
+  container.innerHTML = days.sort().map(d =>
+    `<span style="display:inline-flex;align-items:center;gap:5px;background:var(--col-weekend);border:1px solid var(--gray-200);border-radius:3px;padding:3px 8px;font-size:11px;font-weight:600;">
+      ${d}
+      <button onclick="removePersonalDayOff('${d}')" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:13px;line-height:1;padding:0;" title="Remove">×</button>
+    </span>`
+  ).join('');
+}
+
+async function saveWpVacDays(){
+  const w = WORKERS.find(x=>x.name===wpWorker);
+  if(!w) return;
+  const val = parseInt(document.getElementById('wp-vacdays-input').value);
+  if(isNaN(val)||val<0||val>60){ alert('Invalid number (0-60).'); return; }
+  if(!w.vacDaysByYear) w.vacDaysByYear = {};
+  w.vacDaysByYear[String(wpYear)] = val;
+  document.getElementById('wp-vacdays-hint').textContent = val===w.vacDays ? '= contract default' : `default contract: ${w.vacDays||0}d`;
+  setStatus('Saving…');
+  await syncUpdateWorkerFull(w);
+  setStatus(`✓ ${wpWorker} vacation days ${wpYear} → ${val}`);
+  renderWorkerPanel();
+}
+
+async function addPersonalDayOff(){
+  const w = WORKERS.find(x=>x.name===wpWorker);
+  if(!w) return;
+  const date = document.getElementById('wp-personal-day-input').value;
+  if(!date){ alert('Select a date.'); return; }
+  if(!w.personalDaysOff) w.personalDaysOff = [];
+  if(w.personalDaysOff.includes(date)){ alert('Already added.'); return; }
+  w.personalDaysOff.push(date);
+  renderPersonalDaysList(w);
+  render();
+  setStatus('Saving…');
+  await syncUpdateWorkerFull(w);
+  setStatus(`✓ Personal day off added: ${date}`);
+}
+
+async function removePersonalDayOff(date){
+  const w = WORKERS.find(x=>x.name===wpWorker);
+  if(!w||!w.personalDaysOff) return;
+  w.personalDaysOff = w.personalDaysOff.filter(d=>d!==date);
+  renderPersonalDaysList(w);
+  render();
+  setStatus('Saving…');
+  await syncUpdateWorkerFull(w);
+  setStatus(`✓ Personal day off removed: ${date}`);
+}
+
+async function syncUpdateWorkerFull(w){
+  if(!isEditor||!spToken||!w._id) return;
+  setSyncing(true);
+  try{
+    await updateItem(L_WORKERS, w._id, {
+      NoFriday: String(!!w.noFriday),
+      NoMonday: String(!!w.noMonday),
+      VacDaysByYear: JSON.stringify(w.vacDaysByYear||{}),
+      PersonalDaysOff: JSON.stringify(w.personalDaysOff||[]),
+    });
+  }catch(ex){ showError('Update failed: '+ex.message); }
+  setSyncing(false);
+}
+
+
+function tryParse(s,def){try{return JSON.parse(s);}catch(e){return def;}}
+
 // Start auth flow
 initAuth();
 </script>
@@ -1907,6 +2085,26 @@ initAuth();
         <button class="wpanel-year-btn" onclick="wpNextYear()">›</button>
         <span style="font-size:10px;color:var(--gray-400);margin-left:4px;">fiscal year view</span>
       </div>
+      <div id="wp-edit-section" style="display:none;">
+        <div style="background:var(--gray-100);border-radius:4px;padding:10px 12px;margin-bottom:12px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-600);margin-bottom:8px;">Base vacation days <span id="wp-vacdays-year"></span></div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="number" id="wp-vacdays-input" min="0" max="60" style="width:64px;background:var(--white);border:1px solid var(--gray-200);color:var(--navy);border-radius:3px;padding:5px 8px;font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:700;">
+            <button onclick="saveWpVacDays()" class="btn btn-gold" style="font-size:10px;padding:5px 14px;">Save</button>
+            <span id="wp-vacdays-hint" style="font-size:10px;color:var(--gray-400);"></span>
+          </div>
+        </div>
+        <div style="background:var(--gray-100);border-radius:4px;padding:10px 12px;margin-bottom:12px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-600);margin-bottom:8px;">Personal days off (treated as weekend)</div>
+          <div id="wp-personal-days-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:24px;"></div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="date" id="wp-personal-day-input" style="background:var(--white);border:1px solid var(--gray-200);color:var(--navy);border-radius:3px;padding:5px 8px;font-family:'Instrument Sans',sans-serif;font-size:12px;">
+            <button onclick="addPersonalDayOff()" class="btn btn-gold" style="font-size:10px;padding:5px 14px;">+ Add</button>
+          </div>
+          <div style="font-size:10px;color:var(--gray-400);margin-top:6px;">These days show as weekend, are skipped in vacation counts, and AC ooo does not deduct them.</div>
+        </div>
+      </div>
+      <button id="wp-edit-toggle" class="editor-only btn btn-outline" style="font-size:10px;padding:4px 12px;margin-bottom:12px;width:100%;" onclick="toggleWpEdit()">✏️ Edit vacation days & personal days off</button>
 
       <div id="wp-reset-notice" class="reset-notice" style="display:none"></div>
 
