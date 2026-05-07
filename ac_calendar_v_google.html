@@ -233,13 +233,14 @@
   }
 
   /* CALENDAR */
-  main { padding: 24px 40px 48px; overflow-x:auto; }
+  main { padding: 24px 40px 48px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
 
   .cal-wrap {
     border: 1px solid var(--gray-200);
     border-radius: 6px;
     overflow: hidden;
     box-shadow: 0 2px 16px rgba(17,24,39,.07);
+    min-width: max-content;
   }
 
   table { border-collapse:collapse; background:var(--white); }
@@ -1177,6 +1178,9 @@ function render(){
   document.getElementById('sa').textContent=abs;
   document.getElementById('sw').textContent=workers.length;
   document.getElementById('sd').textContent=dates.length;
+  // Show scroll hint for wide views
+  const hint=document.getElementById('scrollHint');
+  if(hint) hint.style.display=(viewMode==='year'||viewMode==='quarter')?'':'none';
 }
 
 function prevPeriod(){
@@ -2073,6 +2077,44 @@ async function syncUpdateWorkerFull(w){
 
 
 function tryParse(s,def){try{return JSON.parse(s);}catch(e){return def;}}
+
+
+// ── Touch swipe to navigate periods ──
+(function(){
+  let touchStartX=0, touchStartY=0, touchStartTime=0;
+  const SWIPE_THRESHOLD=60, SWIPE_MAX_Y=80, SWIPE_MAX_TIME=400;
+  
+  function getMainEl(){return document.querySelector('main');}
+  
+  document.addEventListener('touchstart', e=>{
+    touchStartX=e.touches[0].clientX;
+    touchStartY=e.touches[0].clientY;
+    touchStartTime=Date.now();
+  }, {passive:true});
+
+  document.addEventListener('touchend', e=>{
+    const dx=e.changedTouches[0].clientX - touchStartX;
+    const dy=e.changedTouches[0].clientY - touchStartY;
+    const dt=Date.now()-touchStartTime;
+    
+    // Only swipe if horizontal, fast enough, and not scrolling vertically
+    if(Math.abs(dx)<SWIPE_THRESHOLD) return;
+    if(Math.abs(dy)>SWIPE_MAX_Y) return;
+    if(dt>SWIPE_MAX_TIME) return;
+    
+    // Check if user is scrolling horizontally inside the calendar (main element)
+    const main=getMainEl();
+    if(main && main.scrollWidth > main.clientWidth){
+      // If calendar is scrollable and not at edge, let it scroll naturally
+      if(dx<0 && main.scrollLeft < main.scrollWidth - main.clientWidth - 10) return;
+      if(dx>0 && main.scrollLeft > 10) return;
+    }
+    
+    // At the edge — navigate to next/prev period
+    if(dx < -SWIPE_THRESHOLD) nextPeriod();
+    else if(dx > SWIPE_THRESHOLD) prevPeriod();
+  }, {passive:true});
+})();
 
 // Start auth flow
 initAuth();
