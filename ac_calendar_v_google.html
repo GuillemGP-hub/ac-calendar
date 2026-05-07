@@ -886,7 +886,7 @@ async function uploadSeedData(){
   await ob.commit();
 }
 
-async function syncAdd(e){if(!isEditor)return;setSyncing(true);try{const ref=await db.collection('entries').add({username:e.username,start:e.start,end:e.end,status:e.status||'',type:e.type,dayValue:e.dayValue||null});e._id=ref.id;setStatus(`✓ Saved`);}catch(ex){showError('Save failed: '+ex.message);}setSyncing(false);}
+async function syncAdd(e){if(!currentUser)return;setSyncing(true);try{const ref=await db.collection('entries').add({username:e.username,start:e.start,end:e.end,status:e.status||'',type:e.type,dayValue:e.dayValue||null});e._id=ref.id;setStatus(`✓ Saved`);}catch(ex){showError('Save failed: '+ex.message);}setSyncing(false);}
 async function syncDel(e){if(!isEditor||!e._id)return;setSyncing(true);try{await db.collection('entries').doc(e._id).delete();setStatus('✓ Deleted');}catch(ex){showError('Delete failed: '+ex.message);}setSyncing(false);}
 async function syncAddWorker(w){if(!isEditor)return;setSyncing(true);try{const ref=await db.collection('workers').add({name:w.name,team:w.team,role:w.role,vacDays:w.vacDays,noFriday:!!w.noFriday,noMonday:!!w.noMonday,vacDaysByYear:w.vacDaysByYear||{},personalDaysOff:w.personalDaysOff||[]});w._id=ref.id;}catch(ex){showError('Save failed: '+ex.message);}setSyncing(false);}
 async function syncDelWorker(id){if(!isEditor||!id)return;setSyncing(true);try{await db.collection('workers').doc(id).delete();}catch(ex){showError('Delete failed: '+ex.message);}setSyncing(false);}
