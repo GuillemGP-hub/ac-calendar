@@ -238,9 +238,10 @@
   .cal-wrap {
     border: 1px solid var(--gray-200);
     border-radius: 6px;
-    overflow: hidden;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
     box-shadow: 0 2px 16px rgba(17,24,39,.07);
-    min-width: max-content;
+    max-height: calc(100vh - 280px);
   }
 
   table { border-collapse:collapse; background:var(--white); }
@@ -252,7 +253,7 @@
 
   /* Name col */
   .cn {
-    position: sticky; left:0; z-index:10;
+    position: sticky; left:0; z-index:11;
     background: var(--white);
     min-width: 100px;
     padding: 0 14px;
@@ -264,7 +265,7 @@
   }
   /* Team col */
   .ct {
-    position: sticky; left:100px; z-index:10;
+    position: sticky; left:100px; z-index:11;
     background: var(--white);
     min-width: 50px;
     padding: 0 8px;
@@ -277,7 +278,7 @@
   }
 
   /* Header */
-  thead tr { background: var(--navy); }
+  thead tr { background: var(--navy); position: sticky; top: 0; z-index: 20; }
   thead .cn {
     background: var(--navy);
     color: var(--gold);
@@ -287,6 +288,7 @@
     height: 54px;
     border-right-color: var(--navy-light) !important;
     border-bottom: none;
+    position: sticky; left: 0; z-index: 30;
   }
   thead .ct {
     background: var(--navy);
@@ -294,6 +296,7 @@
     font-size: 10px; letter-spacing:1px; text-transform:uppercase;
     border-right-color: var(--navy-light) !important;
     border-bottom: none;
+    position: sticky; left: 100px; z-index: 30;
   }
 
   .dh {
