@@ -795,13 +795,35 @@ function tryParse(s,def){try{return JSON.parse(s);}catch(e){return def;}}
 
 async function initAuth(){
   setLoading('Connecting to Google…');
+  // Handle redirect result first (in case we came back from signInWithRedirect)
+  try {
+    const result = await auth.getRedirectResult();
+    if(result && result.user) {
+      // Will be picked up by onAuthStateChanged
+    }
+  } catch(e) { /* ignore */ }
+  
   auth.onAuthStateChanged(async user=>{
-    if(user) await afterLogin(user);
-    else doLogin();
+    if(user){
+      await afterLogin(user);
+    } else {
+      // Show login button instead of auto-popup
+      hideLoading();
+      document.getElementById('loginBtn').style.display = '';
+      document.getElementById('userInfo').innerHTML = 
+        '<span style="font-size:11px;color:var(--gray-400);">Please sign in to view the calendar</span>';
+    }
   });
 }
 function doLogin(){
-  auth.signInWithPopup(googleProvider).catch(e=>{showError('Login failed: '+e.message);hideLoading();});
+  auth.signInWithPopup(googleProvider).catch(e=>{
+    if(e.code==='auth/popup-blocked'){
+      // Fallback to redirect
+      auth.signInWithRedirect(googleProvider);
+    } else {
+      showError('Login failed: '+e.message);
+    }
+  });
 }
 function doLogout(){auth.signOut().then(()=>location.reload());}
 
