@@ -638,7 +638,7 @@
     </select>
     <span class="clabel">Team</span>
     <select id="teamFilter"><option value="all">All Teams</option></select>
-    <button class="btn btn-gold" onclick="openModal()" class="btn btn-gold editor-only">+ Add Entry</button>
+    <button class="btn btn-gold" onclick="openModal()" id="btnAddEntry">+ Add Entry</button>
     <button class="btn btn-outline" onclick="openTeamModal()" class="btn btn-outline editor-only">⚙ Team</button>
     <button class="btn btn-outline" onclick="exportCSV()">↓ Export</button>
   </div>
@@ -780,6 +780,11 @@ const FIREBASE_CONFIG = {
 const EDITORS = ['gp@andersconsulting.com','cb@andersconsulting.com','sh@andersconsulting.com','guillempueyoisidro@gmail.com'];
 
 firebase.initializeApp(FIREBASE_CONFIG);
+// NOTE: Update Firestore rules to allow authenticated users to write entries:
+// allow write: if request.auth != null && (
+//   request.auth.token.email in EDITORS_LIST ||
+//   (resource == null && request.resource.data.username != null)  // new entry for self
+// );
 const auth = firebase.auth();
 const db   = firebase.firestore();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
@@ -1206,23 +1211,68 @@ function initUI(){
   refreshWorkerSelect();
 }
 
+function findWorkerByEmail(email){
+  const prefix=email.split('@')[0].toLowerCase();
+  return WORKERS.find(w=>w.name.toLowerCase()===prefix)||null;
+}
+
+function refreshWorkerSelectForUser(myWorker){
+  const ws=document.getElementById('nWorker');
+  if(myWorker){
+    ws.innerHTML=`<option value="${myWorker.name}">${myWorker.name} (${myWorker.team}) — you</option>`;
+  } else {
+    ws.innerHTML='<option value="" disabled selected>Select your name</option>';
+    WORKERS.forEach(w=>{const o=document.createElement('option');o.value=w.name;o.textContent=`${w.name} (${w.team})`;ws.appendChild(o);});
+  }
+}
+
 function openModal(){
   const t=new Date().toISOString().slice(0,10);
   document.getElementById('nStart').value=t;
   document.getElementById('nEnd').value=t;
-  document.getElementById('nType').value='Vacations';
-  document.getElementById('nWorker').value='__ALL__';
-  document.getElementById('statusRow').style.display='';
-  document.getElementById('entryPreview').style.display='';
-  document.getElementById('entryPreview').innerHTML=`⭐ This entry will be added for <strong>all ${WORKERS.length} workers</strong> simultaneously.`;
-  document.getElementById('nWorker').closest('.frow').style.display='';
   document.getElementById('halfDayRow').style.display='';
-  if(document.getElementById('nHalfDay')) document.getElementById('nHalfDay').checked=false;
+  if(document.getElementById('nHalfDay'))document.getElementById('nHalfDay').checked=false;
+
+  if(isEditor){
+    document.getElementById('nWorker').closest('.frow').style.display='';
+    document.getElementById('nWorker').value='__ALL__';
+    document.getElementById('nType').value='Vacations';
+    document.getElementById('statusRow').style.display='';
+    document.getElementById('entryPreview').style.display='';
+    document.getElementById('entryPreview').innerHTML=`⭐ This entry will be added for <strong>all ${WORKERS.length} workers</strong> simultaneously.`;
+    document.getElementById('nType').innerHTML=`
+      <option value="Vacations">Vacations</option>
+      <option value="HO">Home Office</option>
+      <option value="Krank">Krank (Sick)</option>
+      <option value="ACGft">AC Gift</option>
+      <option value="Remote">Remote</option>
+      <option value="AC_OOO">🏢 AC ooo (company off)</option>`;
+  } else {
+    const email=(currentUser?.email||'').toLowerCase();
+    const myWorker=findWorkerByEmail(email);
+    document.getElementById('nWorker').closest('.frow').style.display='';
+    refreshWorkerSelectForUser(myWorker);
+    document.getElementById('nType').innerHTML=`
+      <option value="Vacations">Vacations (Pending)</option>
+      <option value="HO">Home Office</option>`;
+    document.getElementById('nType').value='Vacations';
+    document.getElementById('statusRow').style.display='none';
+    document.getElementById('entryPreview').style.display='none';
+    document.getElementById('halfDayRow').style.display='';
+  }
   document.getElementById('moverlay').classList.add('open');
 }
+
 function closeModal(){document.getElementById('moverlay').classList.remove('open');}
 async function addEntry(){
-  const u=document.getElementById('nWorker').value,t=document.getElementById('nType').value,s=document.getElementById('nStatus').value,s1=document.getElementById('nStart').value,s2=document.getElementById('nEnd').value;
+  if(!isEditor){
+    const tp=document.getElementById('nType').value;
+    if(tp!=='Vacations'&&tp!=='HO'){alert('You can only add Vacation or Home Office entries.');return;}
+    const u=document.getElementById('nWorker').value;
+    if(!u){alert('Please select your name.');return;}
+  }
+
+  const u=document.getElementById('nWorker').value,t=document.getElementById('nType').value,s=isEditor?document.getElementById('nStatus').value:'Pending',s1=document.getElementById('nStart').value,s2=document.getElementById('nEnd').value;
   if(!s1||!s2||s1>s2){alert('Check dates.');return;}
 
   if(t==='AC_OOO'){
