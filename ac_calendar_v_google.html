@@ -868,30 +868,11 @@ async function syncUpdateWorkerFull(w){if(!isEditor||!w._id)return;setSyncing(tr
 async function syncAddOOO(date,val){if(!isEditor)return;setSyncing(true);try{const ref=await db.collection('ooo').add({date,val});AC_OOO_IDs[date]=ref.id;}catch(ex){showError('Save OOO failed: '+ex.message);}setSyncing(false);}
 
 
-let WORKERS=[
-  {name:'FA', team:'GF',       role:'CEO',          vacDays:29},
-  {name:'LJA',team:'Tiger',    role:'Teamlead',     vacDays:30},
-  {name:'CB', team:'GF',       role:'Assist',       vacDays:29},
-  {name:'JHB',team:'Fox',      role:'',             vacDays:28},
-  {name:'BB', team:'Neun',     role:'PM',           vacDays:28},
-  {name:'SH', team:'GF',       role:'Head Finance', vacDays:30},
-  {name:'TL', team:'M&A',      role:'Associate',    vacDays:28},
-  {name:'NM', team:'Fox',      role:'CRM',          vacDays:33},
-  {name:'AP', team:'M&A',      role:'',             vacDays:29},
-  {name:'VP', team:'M&A',      role:'',             vacDays:28},
-  {name:'NR', team:'GF',       role:'',             vacDays:30},
-  {name:'DT', team:'Fox',      role:'PM',           vacDays:29},
-  {name:'MSW',team:'M&A',      role:'',             vacDays:29},
-  {name:'TW', team:'M&A',      role:'',             vacDays:28},
-  {name:'SBR',team:'DreamTeam',role:'',             vacDays:28},
-  {name:'AB', team:'Neun',     role:'',             vacDays:28},
-  {name:'TB', team:'Tiger',    role:'',             vacDays:24},
-  {name:'KK', team:'DreamTeam',role:'',             vacDays:30},
-  {name:'AMS',team:'GF',       role:'',             vacDays:20},
-  {name:'GP', team:'GF',       role:'',             vacDays:0},
-  {name:'MAL',team:'Fox',      role:'',             vacDays:0},
-  {name:'FS', team:'Tiger',    role:'',             vacDays:0},
-];
+let WORKERS=[];
+let ENTRIES=[];
+let AC_OOO=new Map();
+
+
 
 // ── Bavaria public holidays — auto-calculated for any year ──
 function getBavariaHolidays(year) {
@@ -947,7 +928,7 @@ function getBavariaHolidays(year) {
 // Build holidays for the currently viewed year (refreshed on year change)
 let HOLIDAYS = getBavariaHolidays(2026);
 // AC_OOO: Map of date -> day value (1 = full day, 0.5 = half day)
-let AC_OOO = new Map([
+AC_OOO = new Map([
   ['2026-01-02', 1],
   ['2026-01-05', 1],
   ['2026-05-15', 1],
@@ -959,7 +940,7 @@ let AC_OOO = new Map([
   ['2026-12-31', 0.5],  // half day
 ]);
 
-let ENTRIES=[
+ENTRIES=[
   {username:'NM',start:'2026-01-02',end:'2026-04-02',status:'',type:'Krank'},
   {username:'LJA',start:'2026-01-07',end:'2026-01-08',status:'Accepted',type:'Vacations'},
   {username:'VP',start:'2026-01-07',end:'2026-01-16',status:'Accepted',type:'Vacations'},
@@ -1474,11 +1455,167 @@ function getVacUsedInYear(name, year) {
 }
 
 // Resturlaub 2025 — actual carried-over days into 2026 (half-days allowed)
+
+function loadSeedData(){
+  WORKERS=[
+  {name:'FA', team:'GF',       role:'CEO',          vacDays:29},
+  {name:'LJA',team:'Tiger',    role:'Teamlead',     vacDays:30},
+  {name:'CB', team:'GF',       role:'Assist',       vacDays:29},
+  {name:'JHB',team:'Fox',      role:'',             vacDays:28},
+  {name:'BB', team:'Neun',     role:'PM',           vacDays:28},
+  {name:'SH', team:'GF',       role:'Head Finance', vacDays:30},
+  {name:'TL', team:'M&A',      role:'Associate',    vacDays:28},
+  {name:'NM', team:'Fox',      role:'CRM',          vacDays:33},
+  {name:'AP', team:'M&A',      role:'',             vacDays:29},
+  {name:'VP', team:'M&A',      role:'',             vacDays:28},
+  {name:'NR', team:'GF',       role:'',             vacDays:30},
+  {name:'DT', team:'Fox',      role:'PM',           vacDays:29},
+  {name:'MSW',team:'M&A',      role:'',             vacDays:29},
+  {name:'TW', team:'M&A',      role:'',             vacDays:28},
+  {name:'SBR',team:'DreamTeam',role:'',             vacDays:28},
+  {name:'AB', team:'Neun',     role:'',             vacDays:28},
+  {name:'TB', team:'Tiger',    role:'',             vacDays:24},
+  {name:'KK', team:'DreamTeam',role:'',             vacDays:30},
+  {name:'AMS',team:'GF',       role:'',             vacDays:20},
+  {name:'GP', team:'GF',       role:'',             vacDays:0},
+  {name:'MAL',team:'Fox',      role:'',             vacDays:0},
+  {name:'FS', team:'Tiger',    role:'',             vacDays:0},
+];
+  AC_OOO=new Map([
+  ['2026-01-02',1],['2026-01-05',1],['2026-05-15',1],['2026-06-05',1],
+  ['2026-12-24',0.5],['2026-12-28',1],['2026-12-29',1],['2026-12-30',1],['2026-12-31',0.5],
+]);
+  ENTRIES=[
+  {username:'NM',start:'2026-01-02',end:'2026-04-02',status:'',type:'Krank'},
+  {username:'LJA',start:'2026-01-07',end:'2026-01-08',status:'Accepted',type:'Vacations'},
+  {username:'VP',start:'2026-01-07',end:'2026-01-16',status:'Accepted',type:'Vacations'},
+  {username:'VP',start:'2026-01-19',end:'2026-01-23',status:'Accepted',type:'Krank'},
+  {username:'DT',start:'2026-01-07',end:'2026-01-14',status:'Accepted',type:'Vacations'},
+  {username:'KK',start:'2026-01-07',end:'2026-01-21',status:'Accepted',type:'Vacations'},
+  {username:'BB',start:'2026-01-12',end:'2026-01-12',status:'',type:'HO'},
+  {username:'LJA',start:'2026-01-13',end:'2026-01-15',status:'',type:'HO'},
+  {username:'TB',start:'2026-01-16',end:'2026-01-30',status:'',type:'Krank'},
+  {username:'LJA',start:'2026-01-26',end:'2026-01-26',status:'',type:'HO'},
+  {username:'LJA',start:'2026-01-27',end:'2026-01-28',status:'',type:'Krank'},
+  {username:'CB',start:'2026-01-27',end:'2026-01-28',status:'Accepted',type:'Vacations'},
+  {username:'JHB',start:'2026-01-28',end:'2026-01-28',status:'Accepted',type:'Vacations'},
+  {username:'LJA',start:'2026-01-29',end:'2026-01-30',status:'',type:'HO'},
+  {username:'TW',start:'2026-01-30',end:'2026-02-04',status:'',type:'Krank'},
+  {username:'AB',start:'2026-01-19',end:'2026-01-19',status:'',type:'Krank'},
+  {username:'SBR',start:'2026-01-16',end:'2026-01-19',status:'Accepted',type:'Vacations'},
+  {username:'SBR',start:'2026-02-05',end:'2026-02-05',status:'',type:'Krank'},
+  {username:'AB',start:'2026-02-06',end:'2026-02-06',status:'Accepted',type:'Vacations'},
+  {username:'TL',start:'2026-02-09',end:'2026-02-09',status:'Accepted',type:'Vacations'},
+  {username:'AB',start:'2026-02-10',end:'2026-02-10',status:'',type:'Krank'},
+  {username:'KK',start:'2026-02-10',end:'2026-02-11',status:'Accepted',type:'Vacations'},
+  {username:'LJA',start:'2026-02-11',end:'2026-02-11',status:'',type:'HO'},
+  {username:'LJA',start:'2026-02-16',end:'2026-02-16',status:'Accepted',type:'Vacations'},
+  {username:'BB',start:'2026-02-16',end:'2026-02-16',status:'Accepted',type:'Vacations'},
+  {username:'CB',start:'2026-02-18',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'SH',start:'2026-02-17',end:'2026-02-17',status:'',type:'ACGft'},
+  {username:'TL',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'NR',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'TW',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'SBR',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'TB',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'KK',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'AMS',start:'2026-02-16',end:'2026-02-18',status:'Accepted',type:'Vacations'},
+  {username:'LJA',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'BB',start:'2026-02-17',end:'2026-02-18',status:'',type:'ACGft'},
+  {username:'LJA',start:'2026-02-19',end:'2026-02-20',status:'Accepted',type:'Vacations'},
+  {username:'BB',start:'2026-02-19',end:'2026-02-20',status:'Accepted',type:'Vacations'},
+  {username:'SBR',start:'2026-02-20',end:'2026-02-20',status:'Accepted',type:'Vacations'},
+  {username:'TB',start:'2026-02-23',end:'2026-02-23',status:'',type:'Krank'},
+  {username:'AMS',start:'2026-02-23',end:'2026-02-25',status:'Accepted',type:'Vacations'},
+  {username:'SH',start:'2026-02-26',end:'2026-02-27',status:'Accepted',type:'Vacations'},
+  {username:'TL',start:'2026-02-26',end:'2026-02-27',status:'Accepted',type:'Vacations',dayValue:1.5},
+  {username:'SBR',start:'2026-02-26',end:'2026-02-26',status:'Accepted',type:'Vacations'},
+  {username:'BB',start:'2026-02-27',end:'2026-02-27',status:'',type:'HO'},
+  {username:'VP',start:'2026-02-27',end:'2026-02-27',status:'Accepted',type:'Vacations'},
+  {username:'TW',start:'2026-02-27',end:'2026-02-27',status:'',type:'HO'},
+  {username:'SBR',start:'2026-03-03',end:'2026-03-03',status:'Accepted',type:'Vacations'},
+  {username:'AB',start:'2026-03-03',end:'2026-03-03',status:'',type:'Krank'},
+  {username:'LJA',start:'2026-03-04',end:'2026-03-04',status:'',type:'HO'},
+  {username:'BB',start:'2026-03-04',end:'2026-03-06',status:'',type:'HO'},
+  {username:'MSW',start:'2026-03-04',end:'2026-03-04',status:'',type:'HO'},
+  {username:'JHB',start:'2026-03-05',end:'2026-03-09',status:'Accepted',type:'Vacations'},
+  {username:'MSW',start:'2026-03-05',end:'2026-03-05',status:'Accepted',type:'Vacations',dayValue:0.5},
+  {username:'CB',start:'2026-03-09',end:'2026-03-13',status:'Accepted',type:'Vacations',dayValue:5.5},
+  {username:'SBR',start:'2026-03-09',end:'2026-03-10',status:'Accepted',type:'Vacations'},
+  {username:'TL',start:'2026-03-12',end:'2026-03-12',status:'',type:'Krank'},
+  {username:'TB',start:'2026-03-13',end:'2026-03-17',status:'Accepted',type:'Vacations'},
+  {username:'TW',start:'2026-03-16',end:'2026-03-26',status:'',type:'Krank'},
+  {username:'LJA',start:'2026-03-18',end:'2026-03-18',status:'',type:'HO'},
+  {username:'MSW',start:'2026-03-20',end:'2026-03-20',status:'Accepted',type:'Vacations',dayValue:0.5},
+  {username:'LJA',start:'2026-03-23',end:'2026-03-24',status:'',type:'HO'},
+  {username:'LJA',start:'2026-03-25',end:'2026-03-25',status:'',type:'Krank'},
+  {username:'LJA',start:'2026-03-26',end:'2026-03-26',status:'',type:'HO'},
+  {username:'TL',start:'2026-03-26',end:'2026-03-27',status:'Accepted',type:'Vacations'},
+  {username:'KK',start:'2026-03-26',end:'2026-03-26',status:'',type:'Krank'},
+  {username:'TB',start:'2026-03-27',end:'2026-03-27',status:'Accepted',type:'Vacations'},
+  {username:'SH',start:'2026-03-27',end:'2026-04-02',status:'Accepted',type:'Vacations'},
+  {username:'AP',start:'2026-03-30',end:'2026-03-31',status:'Accepted',type:'Vacations'},
+  {username:'TW',start:'2026-03-27',end:'2026-04-02',status:'Accepted',type:'Vacations'},
+  {username:'SBR',start:'2026-03-30',end:'2026-03-31',status:'',type:'Krank'},
+  {username:'AMS',start:'2026-03-30',end:'2026-04-02',status:'Accepted',type:'Vacations'},
+  {username:'FA',start:'2026-04-07',end:'2026-04-10',status:'Accepted',type:'Vacations'},
+  {username:'LJA',start:'2026-04-07',end:'2026-04-10',status:'Accepted',type:'Vacations'},
+  {username:'CB',start:'2026-04-07',end:'2026-04-07',status:'Accepted',type:'Vacations'},
+  {username:'CB',start:'2026-04-08',end:'2026-04-08',status:'Accepted',type:'Vacations',dayValue:0.5},
+  {username:'CB',start:'2026-04-09',end:'2026-04-10',status:'Accepted',type:'Vacations'},
+  {username:'BB',start:'2026-04-07',end:'2026-04-10',status:'Accepted',type:'Vacations'},
+  {username:'TL',start:'2026-04-07',end:'2026-04-10',status:'Accepted',type:'Vacations'},
+  {username:'NR',start:'2026-04-07',end:'2026-04-10',status:'Pending',type:'Vacations'},
+  {username:'SBR',start:'2026-04-07',end:'2026-04-10',status:'Pending',type:'Vacations'},
+  {username:'TB',start:'2026-04-13',end:'2026-04-24',status:'Accepted',type:'Vacations'},
+  {username:'AP',start:'2026-04-27',end:'2026-04-30',status:'Accepted',type:'Vacations'},
+  {username:'TL',start:'2026-04-30',end:'2026-04-30',status:'Accepted',type:'Vacations'},
+  {username:'NR',start:'2026-04-29',end:'2026-04-30',status:'Pending',type:'Vacations'},
+  {username:'TL',start:'2026-05-11',end:'2026-05-13',status:'Accepted',type:'Vacations'},
+  {username:'TW',start:'2026-05-18',end:'2026-05-18',status:'Pending',type:'Vacations'},
+  {username:'CB',start:'2026-05-26',end:'2026-06-12',status:'Accepted',type:'Vacations'},
+  {username:'LJA',start:'2026-05-27',end:'2026-06-03',status:'Pending',type:'Vacations'},
+  {username:'NM',start:'2026-05-26',end:'2026-05-29',status:'Pending',type:'Vacations'},
+  {username:'JHB',start:'2026-06-11',end:'2026-06-16',status:'Pending',type:'Vacations'},
+  {username:'TW',start:'2026-06-15',end:'2026-06-15',status:'Pending',type:'Vacations'},
+  {username:'SH',start:'2026-06-22',end:'2026-06-26',status:'Pending',type:'Vacations'},
+  {username:'NM',start:'2026-06-29',end:'2026-07-03',status:'Pending',type:'Vacations'},
+  {username:'SBR',start:'2026-07-01',end:'2026-07-10',status:'Pending',type:'Vacations'},
+  {username:'JHB',start:'2026-07-03',end:'2026-07-07',status:'Pending',type:'Vacations'},
+  {username:'KK',start:'2026-07-02',end:'2026-07-10',status:'Pending',type:'Vacations'},
+  {username:'BB',start:'2026-07-10',end:'2026-07-10',status:'Pending',type:'Vacations'},
+  {username:'TL',start:'2026-07-27',end:'2026-07-31',status:'Accepted',type:'Vacations'},
+  {username:'BB',start:'2026-07-31',end:'2026-07-31',status:'Pending',type:'Vacations'},
+  {username:'FA',start:'2026-08-03',end:'2026-08-28',status:'',type:'Remote'},
+  {username:'TL',start:'2026-08-07',end:'2026-08-07',status:'Pending',type:'Vacations'},
+  {username:'BB',start:'2026-08-10',end:'2026-08-21',status:'Pending',type:'Vacations'},
+  {username:'CB',start:'2026-08-17',end:'2026-08-18',status:'Pending',type:'Vacations'},
+  {username:'TW',start:'2026-08-17',end:'2026-08-28',status:'Pending',type:'Vacations'},
+  {username:'LJA',start:'2026-08-31',end:'2026-09-15',status:'Pending',type:'Vacations'},
+  {username:'KK',start:'2026-09-14',end:'2026-09-14',status:'Pending',type:'Vacations'},
+  {username:'TL',start:'2026-09-21',end:'2026-09-22',status:'Pending',type:'Vacations'},
+  {username:'SH',start:'2026-09-28',end:'2026-10-02',status:'Pending',type:'Vacations'},
+  {username:'TB',start:'2026-09-28',end:'2026-10-09',status:'Pending',type:'Vacations'},
+  {username:'TW',start:'2026-10-05',end:'2026-10-08',status:'Pending',type:'Vacations'},
+  {username:'SBR',start:'2026-10-05',end:'2026-10-06',status:'Pending',type:'Vacations'},
+  {username:'NM',start:'2026-10-15',end:'2026-10-16',status:'Pending',type:'Vacations'},
+  {username:'BB',start:'2026-11-02',end:'2026-11-06',status:'Pending',type:'Vacations'},
+  {username:'NR',start:'2026-11-02',end:'2026-11-20',status:'Pending',type:'Vacations'},
+  {username:'JHB',start:'2026-12-21',end:'2026-12-23',status:'Pending',type:'Vacations'},
+  {username:'TL',start:'2026-12-21',end:'2026-12-23',status:'Pending',type:'Vacations'},
+  {username:'CB',start:'2026-12-22',end:'2026-12-23',status:'Pending',type:'Vacations'},
+  {username:'VP',start:'2026-03-30',end:'2026-04-02',status:'Accepted',type:'Vacations'},
+  {username:'BB',start:'2027-02-03',end:'2027-02-03',status:'Pending',type:'Vacations'},
+];
+}
+
 const RESTURLAUB_2025 = {
   'FA':0,'LJA':5,'CB':7.5,'JHB':3,'BB':2,'SH':3.5,'TL':5.5,
   'NM':0,'AP':6,'VP':8,'NR':0,'DT':3,'MSW':1,'TW':2,
   'SBR':0,'AB':0,'FS':0,'TB':3,'KK':1,'AMS':3.5
 };
+
+
 
 function getCarryover(name, year) {
   if (year === 2026) {
